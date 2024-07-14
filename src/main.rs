@@ -45,17 +45,28 @@ fn tokenize(str: String) -> bool {
     let bytes = str.as_bytes();
 
     let mut i = 0;
-    let mut step = 1;
-    while i < str.as_bytes().len() {
+    let mut step;
+
+    while i < bytes.len() {
         match Token::from_bytes(bytes, i) {
             Ok(token) => {
-                if token == Token::EOL {
-                    line += 1;
-                    continue;
+                match token {
+                    Token::EOL => {
+                        line += 1;
+                        continue;
+                    },
+                    Token::COMMENT => {
+                        while i < bytes.len() && bytes[i] as char != '\n' {
+                            i += 1;
+                            line += 1;
+                        }
+                        continue;
+                    },
+                    _ => {
+                        step = token.lexeme.len();
+                        println!("{}", token.to_str());
+                    }
                 }
-
-                step = token.lexeme.len();
-                println!("{}", token.to_str());
             },
             Err(_) => {
                 error_occurred = true;

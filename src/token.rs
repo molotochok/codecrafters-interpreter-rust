@@ -16,7 +16,6 @@ impl Token {
     pub const STAR: Token = Token { name: "STAR", lexeme: "*" };
     pub const MINUS: Token = Token { name: "MINUS", lexeme: "-" };
     pub const SEMICOLON: Token = Token { name: "SEMICOLON", lexeme: ";" };
-    pub const SLASH: Token = Token { name: "SLASH", lexeme: "/" };
 
     // *** One or Two Characters ***
     pub const LESS: Token = Token { name: "LESS", lexeme: "<" };
@@ -27,6 +26,8 @@ impl Token {
     pub const BANG_EQUAL: Token = Token { name: "BANG_EQUAL", lexeme: "!=" };
     pub const EQUAL: Token = Token { name: "EQUAL", lexeme: "=" };
     pub const EQUAL_EQUAL: Token = Token { name: "EQUAL_EQUAL", lexeme: "==" };
+    pub const SLASH: Token = Token { name: "SLASH", lexeme: "/" };
+    pub const COMMENT: Token = Token { name: "COMMENT", lexeme: "//" };
     
     // /n
     pub const EOL: Token = Token { name: "EOL", lexeme: "\n" };
@@ -50,23 +51,29 @@ impl Token {
             '*' => Ok(Token::STAR),
             '-' => Ok(Token::MINUS),
             ';' => Ok(Token::SEMICOLON),
-            '/' => Ok(Token::SLASH),
-            '<' => Token::with_equal(bytes, index, Token::LESS, Token::LESS_EQUAL),
-            '>' => Token::with_equal(bytes, index, Token::GREATER, Token::GREATER_EQUAL),
-            '!' => Token::with_equal(bytes, index, Token::BANG, Token::BANG_EQUAL),
-            '=' => Token::with_equal(bytes, index, Token::EQUAL, Token::EQUAL_EQUAL),
+            '/' => Token::with_double(bytes, index, Token::SLASH, Token::SLASH, Token::COMMENT),
+            '<' => Token::with_double(bytes, index, Token::LESS, Token::EQUAL, Token::LESS_EQUAL),
+            '>' => Token::with_double(bytes, index, Token::GREATER, Token::EQUAL, Token::GREATER_EQUAL),
+            '!' => Token::with_double(bytes, index, Token::BANG, Token::EQUAL, Token::BANG_EQUAL),
+            '=' => Token::with_double(bytes, index, Token::EQUAL, Token::EQUAL, Token::EQUAL_EQUAL),
             '\n' => Ok(Token::EOL),
             _ => Err(String::from("An invalid token type"))
         }
     }
 
-    fn with_equal(bytes: &[u8], index: usize, single: Token, double: Token) -> Result<Token, String> {
+    fn with_double(bytes: &[u8], index: usize, first: Token, second: Token, double: Token) -> Result<Token, String> {
         if index >= bytes.len() - 1  {
-            Ok(single)
+            Ok(first)
         } else {
-            match bytes[index + 1] as char {
-                '=' => Ok(double),
-                _  => Ok(single)
+            match second.lexeme.chars().next() {
+                Some(c) => {
+                    if bytes[index + 1] as char == c {
+                        Ok(double)
+                    } else {
+                        Ok(first)
+                    }
+                }
+                None => Ok(first)
             }
         }
     }
