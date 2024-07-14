@@ -16,6 +16,8 @@ impl Token {
     pub const STAR: Token = Token { name: "STAR", lexeme: "*" };
     pub const MINUS: Token = Token { name: "MINUS", lexeme: "-" };
     pub const SEMICOLON: Token = Token { name: "SEMICOLON", lexeme: ";" };
+    pub const SPACE: Token = Token { name: "SPACE", lexeme: "" };
+    pub const TAB: Token = Token { name: "TAB", lexeme: "" };
 
     // *** One or Two Characters ***
     pub const LESS: Token = Token { name: "LESS", lexeme: "<" };
@@ -33,11 +35,53 @@ impl Token {
     pub const EOL: Token = Token { name: "EOL", lexeme: "\n" };
     pub const EOF: Token = Token { name: "EOF", lexeme: "" };
 
-    pub fn to_str(&self) -> String {
-        format!("{} {} {}", self.name, self.lexeme, "null")
+    pub fn tokenize(str: String) -> bool {
+        let mut line = 1;
+        let mut error_occurred = false;
+    
+        let bytes = str.as_bytes();
+    
+        let mut i = 0;
+        while i < bytes.len() {
+            match Token::from_bytes(bytes, i) {
+                Ok(token) => {
+                    match token {
+                        Token::EOL => {
+                            i += 1;
+                            line += 1;
+                            continue;
+                        },
+                        Token::COMMENT => {
+                            while i < bytes.len() && bytes[i] as char != '\n' {
+                                i += 1;
+                                line += 1;
+                            }
+                            continue;
+                        },
+                        Token::SPACE | Token::TAB => {                           
+                            i += 1;
+                            continue;
+                        },
+                        _ => {
+                            i += token.lexeme.len();
+                            println!("{}", token.to_str());
+                        }
+                    }
+                },
+                Err(_) => {
+                    error_occurred = true;
+                    eprintln!("[line {}] Error: Unexpected character: {}", line, bytes[i] as char);
+                    i += 1;
+                }
+            };
+        }
+    
+        println!("{}", Token::EOF.to_str());
+    
+        error_occurred
     }
 
-    pub fn from_bytes(bytes: &[u8], index: usize) -> Result<Token, String> {
+    fn from_bytes(bytes: &[u8], index: usize) -> Result<Token, String> {
         let char: char = bytes[index] as char;
 
         match char {
@@ -51,6 +95,8 @@ impl Token {
             '*' => Ok(Token::STAR),
             '-' => Ok(Token::MINUS),
             ';' => Ok(Token::SEMICOLON),
+            ' ' => Ok(Token::SPACE),
+            '\t' => Ok(Token::TAB),
             '/' => Token::with_double(bytes, index, Token::SLASH, Token::SLASH, Token::COMMENT),
             '<' => Token::with_double(bytes, index, Token::LESS, Token::EQUAL, Token::LESS_EQUAL),
             '>' => Token::with_double(bytes, index, Token::GREATER, Token::EQUAL, Token::GREATER_EQUAL),
@@ -76,5 +122,9 @@ impl Token {
                 None => Ok(first)
             }
         }
+    }
+
+    fn to_str(&self) -> String {
+        format!("{} {} {}", self.name, self.lexeme, "null")
     }
 }

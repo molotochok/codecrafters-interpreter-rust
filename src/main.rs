@@ -27,7 +27,7 @@ fn main() {
             });
 
             // Uncomment this block to pass the first stage
-            if tokenize(file_contents) {
+            if Token::tokenize(file_contents) {
                 process::exit(65);
             }
         }
@@ -37,48 +37,3 @@ fn main() {
         }
     }
 }
-
-fn tokenize(str: String) -> bool {
-    let mut line = 1;
-    let mut error_occurred = false;
-
-    let bytes = str.as_bytes();
-
-    let mut i = 0;
-    let mut step;
-
-    while i < bytes.len() {
-        match Token::from_bytes(bytes, i) {
-            Ok(token) => {
-                match token {
-                    Token::EOL => {
-                        line += 1;
-                        continue;
-                    },
-                    Token::COMMENT => {
-                        while i < bytes.len() && bytes[i] as char != '\n' {
-                            i += 1;
-                            line += 1;
-                        }
-                        continue;
-                    },
-                    _ => {
-                        step = token.lexeme.len();
-                        println!("{}", token.to_str());
-                    }
-                }
-            },
-            Err(_) => {
-                error_occurred = true;
-                step = 1;
-                eprintln!("[line {}] Error: Unexpected character: {}", line, bytes[i] as char)
-            }
-        };
-        i += step;
-    }
-
-    println!("{}", Token::EOF.to_str());
-
-    error_occurred
-}
-
