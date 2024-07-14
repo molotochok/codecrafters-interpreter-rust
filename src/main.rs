@@ -2,6 +2,10 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 
+mod token;
+use token::Token;
+use token::TokenTypes;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
@@ -34,23 +38,8 @@ fn main() {
 
 fn tokenize(str: String) {
     for (_i, c) in str.chars().enumerate() {
-        let token_type = match c {
-            '(' => TokenTypes::LeftParen,
-            ')' => TokenTypes::RightParen,
-            '{' => TokenTypes::LeftBrace,
-            '}' => TokenTypes::RightBrace,
-            ',' => TokenTypes::Comma,
-            '.' => TokenTypes::Dot,
-            '+' => TokenTypes::Plus,
-            '*' => TokenTypes::Star,
-            '-' => TokenTypes::Minus,
-            ';' => TokenTypes::Semicolon,
-            '/' => TokenTypes::Slash,
-            _ => panic!("An invalid token type")
-        };
-
         let token = Token {
-            token_type,
+            token_type: TokenTypes::from_char(c),
             lexeme: c.to_string(),
             literal: String::from("null")
         };
@@ -67,62 +56,3 @@ fn tokenize(str: String) {
     println!("{}", token.to_str());
 }
 
-struct Token {
-    token_type: TokenTypes,
-    lexeme: String,
-    literal: String
-}
-
-impl Token {
-    fn to_str(&self) -> String {
-        format!("{} {} {}", self.token_type.to_str(), self.lexeme, self.literal)
-    }
-}
-
-enum TokenTypes {
-    // *** Single Character ***
-    // (
-    LeftParen,
-    // )
-    RightParen,
-    // {
-    LeftBrace,
-    // }
-    RightBrace,
-    // ,
-    Comma,
-    // .
-    Dot,
-    // +
-    Plus,
-    // *
-    Star,
-    // -
-    Minus,
-    // ;
-    Semicolon,
-    // /
-    Slash, 
-
-    EOF
-}
-
-impl TokenTypes {
-    fn to_str(&self) -> &'static str {
-        match self {
-            // *** Single Character ***
-            TokenTypes::LeftParen => "LEFT_PAREN",
-            TokenTypes::RightParen => "RIGHT_PAREN",
-            TokenTypes::LeftBrace => "LEFT_BRACE",
-            TokenTypes::RightBrace => "RIGHT_BRACE",
-            TokenTypes::Comma => "COMMA",
-            TokenTypes::Dot => "DOT",
-            TokenTypes::Plus => "PLUS",
-            TokenTypes::Star => "STAR",
-            TokenTypes::Minus => "MINUS",
-            TokenTypes::Semicolon => "SEMICOLON",
-            TokenTypes::Slash => "SLASH",
-            TokenTypes::EOF => "EOF"
-        }
-    }
-}
