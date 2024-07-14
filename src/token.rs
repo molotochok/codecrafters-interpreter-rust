@@ -54,7 +54,6 @@ impl Token {
                         Token::COMMENT => {
                             while i < bytes.len() && bytes[i] as char != '\n' {
                                 i += 1;
-                                line += 1;
                             }
                             continue;
                         },
