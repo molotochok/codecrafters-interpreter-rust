@@ -5,7 +5,6 @@ use std::process;
 
 mod token;
 use token::Token;
-use token::TokenTypes;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -43,36 +42,31 @@ fn tokenize(str: String) -> bool {
     let mut line = 1;
     let mut error_occurred = false;
 
-    for (_i, c) in str.chars().enumerate() {
-        match TokenTypes::from_char(c) {
-            Ok(token_type) => {
-                if token_type == TokenTypes::EOL {
+    let bytes = str.as_bytes();
+
+    let mut i = 0;
+    let mut step = 1;
+    while i < str.as_bytes().len() {
+        match Token::from_bytes(bytes, i) {
+            Ok(token) => {
+                if token == Token::EOL {
                     line += 1;
                     continue;
                 }
 
-                let token = Token {
-                    token_type,
-                    lexeme: c.to_string(),
-                    literal: String::from("null")
-                };
-    
+                step = token.lexeme.len();
                 println!("{}", token.to_str());
             },
             Err(_) => {
                 error_occurred = true;
-                eprintln!("[line {}] Error: Unexpected character: {}", line, c)
+                step = 1;
+                eprintln!("[line {}] Error: Unexpected character: {}", line, bytes[i] as char)
             }
-        }
+        };
+        i += step;
     }
 
-    let token: Token = Token {
-        token_type: TokenTypes::EOF,
-        lexeme: String::from(""),
-        literal: String::from("null")
-    };
-
-    println!("{}", token.to_str());
+    println!("{}", Token::EOF.to_str());
 
     error_occurred
 }
