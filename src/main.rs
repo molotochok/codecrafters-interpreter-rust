@@ -37,6 +37,8 @@ fn tokenize(str: String) {
         let token_type = match c {
             '(' => TokenTypes::LeftParen,
             ')' => TokenTypes::RightParen,
+            '{' => TokenTypes::LeftBrace,
+            '}' => TokenTypes::RightBrace,
             _ => panic!("An invalid token type")
         };
 
@@ -71,7 +73,11 @@ impl Token {
 }
 
 enum TokenTypes {
-    LeftParen, RightParen, EOF
+    LeftParen, 
+    RightParen, 
+    LeftBrace,
+    RightBrace,
+    EOF
 }
 
 impl TokenTypes {
@@ -79,6 +85,8 @@ impl TokenTypes {
         match self {
             TokenTypes::LeftParen => "LEFT_PAREN",
             TokenTypes::RightParen => "RIGHT_PAREN",
+            TokenTypes::LeftBrace => "LEFT_BRACE",
+            TokenTypes::RightBrace => "RIGHT_BRACE",
             TokenTypes::EOF => "EOF"
         }
     }
