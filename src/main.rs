@@ -23,15 +23,63 @@ fn main() {
             });
 
             // Uncomment this block to pass the first stage
-            if !file_contents.is_empty() {
-                panic!("Scanner not implemented");
-            } else {
-                println!("EOF  null"); // Placeholder, remove this line when implementing the scanner
-            }
+            tokenize(file_contents);
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
+        }
+    }
+}
+
+fn tokenize(str: String) {
+    for (_i, c) in str.chars().enumerate() {
+        let token_type = match c {
+            '(' => TokenTypes::LeftParen,
+            ')' => TokenTypes::RightParen,
+            _ => panic!("An invalid token type")
+        };
+
+        let token = Token {
+            token_type,
+            lexeme: c.to_string(),
+            literal: String::from("null")
+        };
+
+        println!("{}", token.to_str());
+    }
+
+    let token: Token = Token {
+        token_type: TokenTypes::EOF,
+        lexeme: String::from(""),
+        literal: String::from("null")
+    };
+
+    println!("{}", token.to_str());
+}
+
+struct Token {
+    token_type: TokenTypes,
+    lexeme: String,
+    literal: String
+}
+
+impl Token {
+    fn to_str(&self) -> String {
+        format!("{} {} {}", self.token_type.to_str(), self.lexeme, self.literal)
+    }
+}
+
+enum TokenTypes {
+    LeftParen, RightParen, EOF
+}
+
+impl TokenTypes {
+    fn to_str(&self) -> &'static str {
+        match self {
+            TokenTypes::LeftParen => "LEFT_PAREN",
+            TokenTypes::RightParen => "RIGHT_PAREN",
+            TokenTypes::EOF => "EOF"
         }
     }
 }
