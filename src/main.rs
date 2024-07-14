@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::process;
 
 mod token;
 use token::Token;
@@ -27,7 +28,9 @@ fn main() {
             });
 
             // Uncomment this block to pass the first stage
-            tokenize(file_contents);
+            if tokenize(file_contents) {
+                process::exit(65);
+            }
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
@@ -36,15 +39,31 @@ fn main() {
     }
 }
 
-fn tokenize(str: String) {
-    for (_i, c) in str.chars().enumerate() {
-        let token = Token {
-            token_type: TokenTypes::from_char(c),
-            lexeme: c.to_string(),
-            literal: String::from("null")
-        };
+fn tokenize(str: String) -> bool {
+    let mut line = 1;
+    let mut error_occurred = false;
 
-        println!("{}", token.to_str());
+    for (_i, c) in str.chars().enumerate() {
+        match TokenTypes::from_char(c) {
+            Ok(token_type) => {
+                if token_type == TokenTypes::EOL {
+                    line += 1;
+                    continue;
+                }
+
+                let token = Token {
+                    token_type,
+                    lexeme: c.to_string(),
+                    literal: String::from("null")
+                };
+    
+                println!("{}", token.to_str());
+            },
+            Err(_) => {
+                error_occurred = true;
+                eprintln!("[line {}] Error: Unexpected character: {}", line, c)
+            }
+        }
     }
 
     let token: Token = Token {
@@ -54,5 +73,7 @@ fn tokenize(str: String) {
     };
 
     println!("{}", token.to_str());
+
+    error_occurred
 }
 

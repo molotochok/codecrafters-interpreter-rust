@@ -10,8 +10,7 @@ impl Token {
   }
 }
 
-
-
+#[derive(PartialEq)]
 pub enum TokenTypes {
   // *** Single Character ***
   // (
@@ -37,24 +36,27 @@ pub enum TokenTypes {
   // /
   Slash, 
 
+  // /n
+  EOL,
   EOF
 }
 
 impl TokenTypes {
-  pub fn from_char(c: char) -> TokenTypes {
+  pub fn from_char(c: char) -> Result<TokenTypes, String> {
       match c {
-          '(' => TokenTypes::LeftParen,
-          ')' => TokenTypes::RightParen,
-          '{' => TokenTypes::LeftBrace,
-          '}' => TokenTypes::RightBrace,
-          ',' => TokenTypes::Comma,
-          '.' => TokenTypes::Dot,
-          '+' => TokenTypes::Plus,
-          '*' => TokenTypes::Star,
-          '-' => TokenTypes::Minus,
-          ';' => TokenTypes::Semicolon,
-          '/' => TokenTypes::Slash,
-          _ => panic!("An invalid token type")
+          '(' => Ok(TokenTypes::LeftParen),
+          ')' => Ok(TokenTypes::RightParen),
+          '{' => Ok(TokenTypes::LeftBrace),
+          '}' => Ok(TokenTypes::RightBrace),
+          ',' => Ok(TokenTypes::Comma),
+          '.' => Ok(TokenTypes::Dot),
+          '+' => Ok(TokenTypes::Plus),
+          '*' => Ok(TokenTypes::Star),
+          '-' => Ok(TokenTypes::Minus),
+          ';' => Ok(TokenTypes::Semicolon),
+          '/' => Ok(TokenTypes::Slash),
+          '\n' => Ok(TokenTypes::EOL),
+          _ => Err(String::from("An invalid token type"))
       }
   }
 
@@ -72,6 +74,7 @@ impl TokenTypes {
           TokenTypes::Minus => "MINUS",
           TokenTypes::Semicolon => "SEMICOLON",
           TokenTypes::Slash => "SLASH",
+          TokenTypes::EOL => "EOL",
           TokenTypes::EOF => "EOF"
       }
   }
