@@ -1,39 +1,45 @@
 #[derive(PartialEq)]
-pub struct Token {
+pub struct Token<'a> {
     pub name: &'static str,
-    pub lexeme: &'static str
+    pub lexeme: &'a str,
+    pub literal: &'a str,
 }
 
-impl Token {
+impl<'a> Token<'a> {
     // *** Single Character ***
-    pub const LEFT_PAREN: Token = Token {name: "LEFT_PAREN", lexeme: "("};
-    pub const RIGHT_PAREN: Token = Token { name: "RIGHT_PAREN", lexeme: ")" };
-    pub const LEFT_BRACE: Token = Token { name: "LEFT_BRACE", lexeme: "{" };
-    pub const RIGHT_BRACE: Token = Token { name: "RIGHT_BRACE", lexeme: "}"};
-    pub const COMMA: Token = Token { name: "COMMA", lexeme: "," };
-    pub const DOT: Token = Token { name: "DOT", lexeme: "." };
-    pub const PLUS: Token = Token { name: "PLUS", lexeme: "+" };
-    pub const STAR: Token = Token { name: "STAR", lexeme: "*" };
-    pub const MINUS: Token = Token { name: "MINUS", lexeme: "-" };
-    pub const SEMICOLON: Token = Token { name: "SEMICOLON", lexeme: ";" };
-    pub const SPACE: Token = Token { name: "SPACE", lexeme: "" };
-    pub const TAB: Token = Token { name: "TAB", lexeme: "" };
+    pub const LEFT_PAREN: Token<'a> = Token {name: "LEFT_PAREN", lexeme: "(", literal: "null" };
+    pub const RIGHT_PAREN: Token<'a> = Token { name: "RIGHT_PAREN", lexeme: ")", literal: "null" };
+    pub const LEFT_BRACE: Token<'a> = Token { name: "LEFT_BRACE", lexeme: "{", literal: "null" };
+    pub const RIGHT_BRACE: Token<'a> = Token { name: "RIGHT_BRACE", lexeme: "}", literal: "null" };
+    pub const COMMA: Token<'a> = Token { name: "COMMA", lexeme: ",", literal: "null" };
+    pub const DOT: Token<'a> = Token { name: "DOT", lexeme: ".", literal: "null" };
+    pub const PLUS: Token<'a> = Token { name: "PLUS", lexeme: "+", literal: "null" };
+    pub const STAR: Token<'a> = Token { name: "STAR", lexeme: "*", literal: "null" };
+    pub const MINUS: Token<'a> = Token { name: "MINUS", lexeme: "-", literal: "null" };
+    pub const SEMICOLON: Token<'a> = Token { name: "SEMICOLON", lexeme: ";", literal: "null" };
+    pub const SPACE: Token<'a> = Token { name: "SPACE", lexeme: "", literal: "null" };
+    pub const TAB: Token<'a> = Token { name: "TAB", lexeme: "", literal: "null" };
 
     // *** One or Two Characters ***
-    pub const LESS: Token = Token { name: "LESS", lexeme: "<" };
-    pub const LESS_EQUAL: Token = Token { name: "LESS_EQUAL", lexeme: "<=" };
-    pub const GREATER: Token = Token { name: "GREATER", lexeme: ">" };
-    pub const GREATER_EQUAL: Token = Token { name: "GREATER_EQUAL", lexeme: ">=" };
-    pub const BANG: Token = Token { name: "BANG", lexeme: "!" };
-    pub const BANG_EQUAL: Token = Token { name: "BANG_EQUAL", lexeme: "!=" };
-    pub const EQUAL: Token = Token { name: "EQUAL", lexeme: "=" };
-    pub const EQUAL_EQUAL: Token = Token { name: "EQUAL_EQUAL", lexeme: "==" };
-    pub const SLASH: Token = Token { name: "SLASH", lexeme: "/" };
-    pub const COMMENT: Token = Token { name: "COMMENT", lexeme: "//" };
+    pub const LESS: Token<'a> = Token { name: "LESS", lexeme: "<", literal: "null" };
+    pub const LESS_EQUAL: Token<'a> = Token { name: "LESS_EQUAL", lexeme: "<=", literal: "null" };
+    pub const GREATER: Token<'a> = Token { name: "GREATER", lexeme: ">", literal: "null" };
+    pub const GREATER_EQUAL: Token<'a> = Token { name: "GREATER_EQUAL", lexeme: ">=", literal: "null" };
+    pub const BANG: Token<'a> = Token { name: "BANG", lexeme: "!", literal: "null" };
+    pub const BANG_EQUAL: Token<'a> = Token { name: "BANG_EQUAL", lexeme: "!=", literal: "null" };
+    pub const EQUAL: Token<'a> = Token { name: "EQUAL", lexeme: "=", literal: "null" };
+    pub const EQUAL_EQUAL: Token<'a> = Token { name: "EQUAL_EQUAL", lexeme: "==", literal: "null" };
+    pub const SLASH: Token<'a> = Token { name: "SLASH", lexeme: "/", literal: "null" };
+    pub const COMMENT: Token<'a> = Token { name: "COMMENT", lexeme: "//", literal: "null" };
+
+    // *** Multiple ***
+    pub fn new_literal(lexeme: &'a str, literal: &'a str) -> Token<'a> {
+        Token { name: "STRING", lexeme, literal }
+    }
     
     // /n
-    pub const EOL: Token = Token { name: "EOL", lexeme: "\n" };
-    pub const EOF: Token = Token { name: "EOF", lexeme: "" };
+    pub const EOL: Token<'a> = Token { name: "EOL", lexeme: "\n", literal: "null" };
+    pub const EOF: Token<'a> = Token { name: "EOF", lexeme: "", literal: "null" };
 
     pub fn tokenize(str: String) -> bool {
         let mut line = 1;
@@ -67,10 +73,22 @@ impl Token {
                         }
                     }
                 },
-                Err(_) => {
+                Err(error) => {
                     error_occurred = true;
-                    eprintln!("[line {}] Error: Unexpected character: {}", line, bytes[i] as char);
-                    i += 1;
+
+                    match error {
+                        Error::UnexpectedCharacter(msg) => {
+                            eprintln!("[line {}] Error: {}", line, msg);
+                            i += 1;
+                        },
+                        Error::UndeterminedString(msg) => {
+                            eprintln!("[line {}] Error: {}", line, msg);
+                            while i < bytes.len() && bytes[i] as char != '\n' {
+                                i += 1;
+                            }
+                            line += 1;
+                        }
+                    }
                 }
             };
         }
@@ -80,7 +98,7 @@ impl Token {
         error_occurred
     }
 
-    fn from_bytes(bytes: &[u8], index: usize) -> Result<Token, String> {
+    fn from_bytes(bytes: &[u8], index: usize) -> Result<Token, Error> {
         let char: char = bytes[index] as char;
 
         match char {
@@ -96,17 +114,40 @@ impl Token {
             ';' => Ok(Token::SEMICOLON),
             ' ' => Ok(Token::SPACE),
             '\t' => Ok(Token::TAB),
-            '/' => Token::with_double(bytes, index, Token::SLASH, Token::SLASH, Token::COMMENT),
-            '<' => Token::with_double(bytes, index, Token::LESS, Token::EQUAL, Token::LESS_EQUAL),
-            '>' => Token::with_double(bytes, index, Token::GREATER, Token::EQUAL, Token::GREATER_EQUAL),
-            '!' => Token::with_double(bytes, index, Token::BANG, Token::EQUAL, Token::BANG_EQUAL),
-            '=' => Token::with_double(bytes, index, Token::EQUAL, Token::EQUAL, Token::EQUAL_EQUAL),
+            '/' => Token::with_pair(bytes, index, Token::SLASH, Token::SLASH, Token::COMMENT),
+            '<' => Token::with_pair(bytes, index, Token::LESS, Token::EQUAL, Token::LESS_EQUAL),
+            '>' => Token::with_pair(bytes, index, Token::GREATER, Token::EQUAL, Token::GREATER_EQUAL),
+            '!' => Token::with_pair(bytes, index, Token::BANG, Token::EQUAL, Token::BANG_EQUAL),
+            '=' => Token::with_pair(bytes, index, Token::EQUAL, Token::EQUAL, Token::EQUAL_EQUAL),
+            '"' => Token::with_literal(bytes, index),
             '\n' => Ok(Token::EOL),
-            _ => Err(String::from("An invalid token type"))
+            _ => Err(Error::UnexpectedCharacter(format!("Unexpected character: {}", char)))
         }
     }
 
-    fn with_double(bytes: &[u8], index: usize, first: Token, second: Token, double: Token) -> Result<Token, String> {
+    fn with_literal(bytes: &[u8], index: usize) -> Result<Token, Error> {
+        let mut i = index + 1;
+        while i < bytes.len() {
+            let c = bytes[i] as char;
+
+            if c == '\n' {
+                break;
+            }
+
+            if c == '"' {
+                match std::str::from_utf8(&bytes[index..i + 1]) {
+                    Ok(s) => return Ok(Token::new_literal(s, &s[1..s.len() - 1])),
+                    Err(_) => break
+                };
+            }
+
+            i += 1;
+        }
+
+        return Err(Error::UndeterminedString(String::from("Unterminated string.")));
+    }
+
+    fn with_pair(bytes: &[u8], index: usize, first: Token<'a>, second: Token<'a>, double: Token<'a>) -> Result<Token<'a>, Error> {
         if index >= bytes.len() - 1  {
             Ok(first)
         } else {
@@ -124,6 +165,11 @@ impl Token {
     }
 
     fn to_str(&self) -> String {
-        format!("{} {} {}", self.name, self.lexeme, "null")
+        format!("{} {} {}", self.name, self.lexeme, self.literal)
     }
+}
+
+enum Error {
+    UnexpectedCharacter(String),
+    UndeterminedString(String)
 }
