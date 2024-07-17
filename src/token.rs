@@ -34,6 +34,23 @@ impl<'a> Token<'a> {
     pub const SLASH: Token<'a> = Token { name: "SLASH", lexeme: "/", literal: Cow::Borrowed("null")};
     pub const COMMENT: Token<'a> = Token { name: "COMMENT", lexeme: "//", literal: Cow::Borrowed("null")};
 
+    // *** Reserved words ***
+    pub const AND: Token<'a> = Token { name: "AND", lexeme: "and", literal: Cow::Borrowed("null") };
+    pub const CLASS: Token<'a> = Token { name: "CLASS", lexeme: "class", literal: Cow::Borrowed("null") };
+    pub const ELSE: Token<'a> = Token { name: "ELSE", lexeme: "else", literal: Cow::Borrowed("null") };
+    pub const FALSE: Token<'a> = Token { name: "FALSE", lexeme: "false", literal: Cow::Borrowed("null") };
+    pub const FOR: Token<'a> = Token { name: "FOR", lexeme: "for", literal: Cow::Borrowed("null") };
+    pub const FUN: Token<'a> = Token { name: "FUN", lexeme: "fun", literal: Cow::Borrowed("null") };
+    pub const IF: Token<'a> = Token { name: "IF", lexeme: "if", literal: Cow::Borrowed("null") };
+    pub const NIL: Token<'a> = Token { name: "NIL", lexeme: "nil", literal: Cow::Borrowed("null") };
+    pub const OR: Token<'a> = Token { name: "OR", lexeme: "or", literal: Cow::Borrowed("null") };
+    pub const RETURN: Token<'a> = Token { name: "RETURN", lexeme: "return", literal: Cow::Borrowed("null") };
+    pub const SUPER: Token<'a> = Token { name: "SUPER", lexeme: "super", literal: Cow::Borrowed("null") };
+    pub const THIS: Token<'a> = Token { name: "THIS", lexeme: "this", literal: Cow::Borrowed("null") };
+    pub const TRUE: Token<'a> = Token { name: "TRUE", lexeme: "true", literal: Cow::Borrowed("null") };
+    pub const VAR: Token<'a> = Token { name: "VAR", lexeme: "var", literal: Cow::Borrowed("null") };
+    pub const WHILE: Token<'a> = Token { name: "WHILE", lexeme: "while", literal: Cow::Borrowed("null") };
+
     // *** Complex ***
     pub fn new_literal(lexeme: &'a str, literal: String) -> Token<'a> {
         Token { name: "STRING", lexeme, literal: Cow::Owned(literal) }
@@ -125,7 +142,7 @@ impl<'a> Token<'a> {
             '!' => Token::with_pair(bytes, index, Token::BANG, Token::EQUAL, Token::BANG_EQUAL),
             '=' => Token::with_pair(bytes, index, Token::EQUAL, Token::EQUAL, Token::EQUAL_EQUAL),
             '"' => Token::with_literal(bytes, index),
-            '1'..='9' => Token::with_number(bytes, index), 
+            '0'..='9' => Token::with_number(bytes, index), 
             c if c.is_alphabetic() || c == '_' => Token::with_identifier(bytes, index),
             '\n' => Ok(Token::EOL),
             _ => Err(Error::UnexpectedCharacter(format!("Unexpected character: {}", char)))
@@ -143,7 +160,23 @@ impl<'a> Token<'a> {
         }
 
         match std::str::from_utf8(&bytes[index..i]) {
-            Ok(s) => Ok(Token::new_identifier(s)),
+            Ok(s) => 
+                if s == Token::AND.lexeme { Ok(Token::AND) }
+                else if s == Token::CLASS.lexeme { Ok(Token::CLASS) }
+                else if s == Token::ELSE.lexeme { Ok(Token::ELSE) }
+                else if s == Token::FALSE.lexeme { Ok(Token::FALSE) }
+                else if s == Token::FOR.lexeme { Ok(Token::FOR) }
+                else if s == Token::FUN.lexeme { Ok(Token::FUN) }
+                else if s == Token::IF.lexeme { Ok(Token::IF) }
+                else if s == Token::NIL.lexeme { Ok(Token::NIL) }
+                else if s == Token::OR.lexeme { Ok(Token::OR) }
+                else if s == Token::RETURN.lexeme { Ok(Token::RETURN) }
+                else if s == Token::SUPER.lexeme { Ok(Token::SUPER) }
+                else if s == Token::THIS.lexeme { Ok(Token::THIS) }
+                else if s == Token::TRUE.lexeme { Ok(Token::TRUE) }
+                else if s == Token::VAR.lexeme { Ok(Token::VAR) }
+                else if s == Token::WHILE.lexeme { Ok(Token::WHILE) }
+                else { Ok(Token::new_identifier(s)) },
             Err(_) => Ok(Token::EOL)
         }
     }
