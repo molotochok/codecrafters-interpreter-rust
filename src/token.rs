@@ -42,6 +42,10 @@ impl<'a> Token<'a> {
     pub fn new_number(lexeme: &'a str, literal: String) -> Token<'a> {
         Token { name: "NUMBER", lexeme, literal: Cow::Owned(literal) }
     }
+
+    pub fn new_identifier(lexeme: &'a str) -> Token<'a> {
+        Token { name: "IDENTIFIER", lexeme, literal: Cow::Borrowed("null") }
+    }
     
     // /n
     pub const EOL: Token<'a> = Token { name: "EOL", lexeme: "\n", literal: Cow::Borrowed("null")};
@@ -122,8 +126,25 @@ impl<'a> Token<'a> {
             '=' => Token::with_pair(bytes, index, Token::EQUAL, Token::EQUAL, Token::EQUAL_EQUAL),
             '"' => Token::with_literal(bytes, index),
             '1'..='9' => Token::with_number(bytes, index), 
+            c if c.is_alphabetic() || c == '_' => Token::with_identifier(bytes, index),
             '\n' => Ok(Token::EOL),
             _ => Err(Error::UnexpectedCharacter(format!("Unexpected character: {}", char)))
+        }
+    }
+
+    fn with_identifier(bytes: &[u8], index: usize) -> Result<Token, Error> {
+        let mut i = index + 1;
+        while i < bytes.len() {
+            let c = bytes[i] as char;
+            if !c.is_alphanumeric() && c != '_' {
+                break;
+            }
+            i += 1;
+        }
+
+        match std::str::from_utf8(&bytes[index..i]) {
+            Ok(s) => Ok(Token::new_identifier(s)),
+            Err(_) => Ok(Token::EOL)
         }
     }
 
@@ -148,13 +169,13 @@ impl<'a> Token<'a> {
         i -= 1;
 
         if bytes[i] as char == '.' {
-            dots -= 1;
             i -= 1;
         }
 
         match std::str::from_utf8(&bytes[index..i + 1]) {
             Ok(s) => {
-                let literal = if dots == 0 { format!("{}.0", s) } else { s.to_owned() };
+                let number: f64 = s.parse().unwrap();
+                let literal = if number.fract() == 0. { format!("{}.0", number) } else { number.to_string() };
                 Ok(Token::new_number(s, literal))
             },
             Err(_) => Ok(Token::EOL)
