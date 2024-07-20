@@ -3,8 +3,9 @@ use std::fs;
 use std::io::{self, Write};
 use std::process;
 
-mod token;
-use token::Token;
+mod token; use token::Token;
+mod parser; use parser::Parser;
+mod expression;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -18,22 +19,41 @@ fn main() {
 
     match command.as_str() {
         "tokenize" => {
-            // You can use print statements as follows for debugging, they'll be visible when running tests.
-            writeln!(io::stderr(), "Logs from your program will appear here!").unwrap();
-
-            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-                writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
-                String::new()
-            });
-
-            // Uncomment this block to pass the first stage
-            if Token::tokenize(file_contents) {
-                process::exit(65);
-            }
+            tokenize(filename, true);
+        },
+        "parse" => {
+            let tokens = &tokenize(filename, false);
+            let expression = Parser::parse(tokens);
+            println!("{}", expression.to_string());
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
         }
     }
+}
+
+fn tokenize(filename: &String, print_tokens: bool) -> Vec<Token> {
+    let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+        writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
+        String::new()
+    });
+
+    let (tokens, errors) = Token::tokenize(&file_contents);
+
+    for error in &errors {
+        eprintln!("{}", error);
+    }
+
+    if print_tokens {
+        for token in &tokens {
+            println!("{}", token.to_str())
+        }
+    }
+
+    if errors.len() > 0 {
+        process::exit(65);
+    }
+
+    tokens
 }
