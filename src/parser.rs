@@ -34,6 +34,7 @@ impl Parser {
       return left
     }
 
+    let mut expression = left.unwrap();
     loop {
       match Parser::check_token(tokens, index, &[TokenType::BangEqual, TokenType::Equal]) {
         Some(token) => {
@@ -43,11 +44,13 @@ impl Parser {
             return right;
           }
 
-          return Ok(Expression::Binary(Box::new(left.unwrap()), token, Box::new(right.unwrap())));
+          expression = Expression::Binary(Box::new(expression), token, Box::new(right.unwrap()));
         },
-        None => return left
+        None => break
       }
     }
+
+    Ok(expression)
   }
 
   fn comparison<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParseError> {
@@ -57,6 +60,7 @@ impl Parser {
       return left
     }
 
+    let mut expression = left.unwrap();
     loop {
       match Parser::check_token(tokens, index, &[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
         Some(token) => {
@@ -66,11 +70,13 @@ impl Parser {
             return right;
           }
 
-          return Ok(Expression::Binary(Box::new(left.unwrap()), token, Box::new(right.unwrap())));
+          expression = Expression::Binary(Box::new(expression), token, Box::new(right.unwrap()));
         },
-        None => return left
+        None => break
       }
     }
+
+    Ok(expression)
   }
 
   fn term<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParseError> {
@@ -80,6 +86,7 @@ impl Parser {
       return left;
     }
 
+    let mut expression = left.unwrap();
     loop {
       match Parser::check_token(tokens, index, &[TokenType::Minus, TokenType::Plus]) {
         Some(token) => {
@@ -89,11 +96,13 @@ impl Parser {
             return right;
           }
 
-          return Ok(Expression::Binary(Box::new(left.unwrap()), token, Box::new(right.unwrap())));
+          expression = Expression::Binary(Box::new(expression), token, Box::new(right.unwrap()));
         },
-        None => return left
+        None => break
       }
     }
+
+    Ok(expression)
   }
 
   fn factor<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParseError> {
@@ -103,6 +112,7 @@ impl Parser {
       return left;
     }
 
+    let mut expression = left.unwrap();
     loop {
       match Parser::check_token(tokens, index, &[TokenType::Slash, TokenType::Star]) {
         Some(token) => {
@@ -112,11 +122,13 @@ impl Parser {
             return right;
           }
 
-          return Ok(Expression::Binary(Box::new(left.unwrap()), token, Box::new(right.unwrap())));
+          expression = Expression::Binary(Box::new(expression), token, Box::new(right.unwrap()));
         },
-        None => return left
+        None => break
       }
     }
+
+    Ok(expression)
   }
 
   fn unary<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParseError> {
