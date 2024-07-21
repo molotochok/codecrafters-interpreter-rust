@@ -24,7 +24,14 @@ fn main() {
         "parse" => {
             let tokens = &tokenize(filename, false);
             let expression = Parser::parse(tokens);
-            println!("{}", expression.to_string());
+
+            match expression {
+                Ok(e) => println!("{}", e.to_string()),
+                Err(e) => {
+                    eprintln!("{}", e.to_string());
+                    process::exit(65);
+                }
+            };
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
