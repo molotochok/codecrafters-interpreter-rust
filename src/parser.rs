@@ -62,7 +62,7 @@ impl Parser {
 
     let mut expression = left.unwrap();
     loop {
-      match Parser::check_token(tokens, index, &[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual]) {
+      match Parser::check_token(tokens, index, &[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual, TokenType::EqualEqual]) {
         Some(token) => {
           let right = Parser::term(tokens, index);
 
