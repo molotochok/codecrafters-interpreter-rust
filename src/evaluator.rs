@@ -86,9 +86,9 @@ impl Evaluator {
                       TokenType::BangEqual => Ok(RuntimeType::Boolean(true)),
                       _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
-                    _ => Ok(RuntimeType::Nil())
+                    _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                   },
-                  _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers or strings.\n[line {}]", token.line)))
+                  _ => Err(EvaluationError::UnaryError(format!("Operands must be two numbers or two strings.\n[line {}]", token.line)))
                 }
               },
               Err(e) => Err(e)
