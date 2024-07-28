@@ -5,7 +5,8 @@ use std::process;
 
 mod token; use token::Token;
 mod parser; use parser::Parser;
-mod expression;
+mod expression; use expression::Expression;
+mod evaluator; use evaluator::Evaluator;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -22,17 +23,14 @@ fn main() {
             tokenize(filename, true);
         },
         "parse" => {
-            let tokens = &tokenize(filename, false);
-            let expression = Parser::parse(tokens);
-
-            match expression {
-                Ok(e) => println!("{}", e.to_string()),
-                Err(e) => {
-                    eprintln!("{}", e.to_string());
-                    process::exit(65);
-                }
-            };
-        }
+            let tokens = tokenize(filename, false);
+            parse(&tokens, true);
+        },
+        "evaluate" => {
+            let tokens = tokenize(filename, false);
+            let expression = parse(&tokens, false);
+            evaluate(&expression);
+        },
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
@@ -63,4 +61,26 @@ fn tokenize(filename: &String, print_tokens: bool) -> Vec<Token> {
     }
 
     tokens
+}
+
+fn parse<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
+    let expression = Parser::parse(tokens);
+
+    match expression {
+        Ok(e) => {
+            if print_expr {
+                println!("{}", e.to_string())
+            }
+            
+            return e;
+        },
+        Err(e) => {
+            eprintln!("{}", e.to_string());
+            process::exit(65);
+        }
+    };
+}
+
+fn evaluate(expression: &Expression) {
+    println!("{}", Evaluator::evaluate(expression))
 }
