@@ -43,6 +43,13 @@ impl Evaluator {
               TokenType::GreaterEqual => RuntimeType::Boolean(ln >= rn),
               TokenType::Less => RuntimeType::Boolean(ln < rn),
               TokenType::LessEqual => RuntimeType::Boolean(ln <= rn),
+              TokenType::EqualEqual => RuntimeType::Boolean(ln == rn),
+              TokenType::BangEqual => RuntimeType::Boolean(ln != rn),
+              _ => RuntimeType::Nil()
+            },
+            RuntimeType::String(_rs) => match token.token_type {
+              TokenType::EqualEqual => RuntimeType::Boolean(false),
+              TokenType::BangEqual => RuntimeType::Boolean(true),
               _ => RuntimeType::Nil()
             },
             _ => RuntimeType::Nil()
@@ -50,6 +57,13 @@ impl Evaluator {
           RuntimeType::String(ls) => match right_value {
             RuntimeType::String(rs) => match token.token_type {
               TokenType::Plus =>  RuntimeType::String(ls + &rs),
+              TokenType::EqualEqual => RuntimeType::Boolean(ls == rs),
+              TokenType::BangEqual => RuntimeType::Boolean(ls != rs),
+              _ => RuntimeType::Nil()
+            },
+            RuntimeType::Number(_rn) => match token.token_type {
+              TokenType::EqualEqual => RuntimeType::Boolean(false),
+              TokenType::BangEqual => RuntimeType::Boolean(true),
               _ => RuntimeType::Nil()
             },
             _ => RuntimeType::Nil()
