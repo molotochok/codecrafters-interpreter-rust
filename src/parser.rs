@@ -147,13 +147,8 @@ impl Parser {
   }
 
   fn primary<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParseError> {
-    match Parser::check_token(tokens, index, &[TokenType::False, TokenType::True, TokenType:: Nil]) {
-      Some(token) => return Ok(Expression::Literal(format!("{}", token.lexeme))),
-      None => {}
-    };
-
-    match Parser::check_token(tokens, index, &[TokenType::Number, TokenType::String]) {
-      Some(token) => return Ok(Expression::Literal(format!("{}", token.literal))),
+    match Parser::check_token(tokens, index, &[TokenType::False, TokenType::True, TokenType:: Nil, TokenType::Number, TokenType::String]) {
+      Some(token) => return Ok(Expression::Literal(token)),
       None => {}
     };
 

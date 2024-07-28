@@ -82,5 +82,5 @@ fn parse<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
 }
 
 fn evaluate(expression: &Expression) {
-    println!("{}", Evaluator::evaluate(expression))
+    println!("{}", Evaluator::evaluate(expression).to_string())
 }
