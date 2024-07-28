@@ -34,11 +34,15 @@ impl Evaluator {
 
         match left_value {
           RuntimeType::Number(ln) => match right_value {
-            RuntimeType::Number(lr) => match token.token_type {
-              TokenType::Plus => RuntimeType::Number(ln + lr),
-              TokenType::Minus => RuntimeType::Number(ln - lr),
-              TokenType::Star => RuntimeType::Number(ln * lr),
-              TokenType::Slash => RuntimeType::Number(ln / lr),
+            RuntimeType::Number(rn) => match token.token_type {
+              TokenType::Plus => RuntimeType::Number(ln + rn),
+              TokenType::Minus => RuntimeType::Number(ln - rn),
+              TokenType::Star => RuntimeType::Number(ln * rn),
+              TokenType::Slash => RuntimeType::Number(ln / rn),
+              TokenType::Greater => RuntimeType::Boolean(ln > rn),
+              TokenType::GreaterEqual => RuntimeType::Boolean(ln >= rn),
+              TokenType::Less => RuntimeType::Boolean(ln < rn),
+              TokenType::LessEqual => RuntimeType::Boolean(ln <= rn),
               _ => RuntimeType::Nil()
             },
             _ => RuntimeType::Nil()
@@ -49,7 +53,7 @@ impl Evaluator {
               _ => RuntimeType::Nil()
             },
             _ => RuntimeType::Nil()
-          }
+          },
           _ => RuntimeType::Nil()
         }
       }
