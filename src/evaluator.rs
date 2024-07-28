@@ -32,6 +32,7 @@ impl Evaluator {
           _ => RuntimeType::Nil()
         }
       },
+      Expression::Grouping(e) => Evaluator::evaluate(e),
       _ => RuntimeType::Nil()
     }
   }
