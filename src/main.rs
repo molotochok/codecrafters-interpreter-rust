@@ -7,6 +7,7 @@ mod token; use token::Token;
 mod parser; use parser::Parser;
 mod expression; use expression::Expression;
 mod evaluator; use evaluator::Evaluator;
+mod runtime_type;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

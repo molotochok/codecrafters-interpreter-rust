@@ -1,24 +1,7 @@
 use crate::{expression::Expression, token::TokenType};
+use crate::runtime_type::RuntimeType;
 
 pub struct Evaluator;
-
-pub enum RuntimeType {
-  Boolean(bool),
-  String(String),
-  Number(f64),
-  Nil()
-}
-
-impl RuntimeType {
-  pub fn to_string(&self) -> String {
-    match self {
-      RuntimeType::Boolean(v) => v.to_string(),
-      RuntimeType::String(v) => v.to_string(),
-      RuntimeType::Number(v) => v.to_string(),
-      RuntimeType::Nil() => String::from("nil")
-    }
-  }
-}
 
 impl Evaluator {
   pub fn evaluate<'a>(expression: &'a Expression) -> RuntimeType {
@@ -33,6 +16,18 @@ impl Evaluator {
         }
       },
       Expression::Grouping(e) => Evaluator::evaluate(e),
+      Expression::Unary(token, e) => {
+        let value = Evaluator::evaluate(e);
+
+        match token.token_type {
+          TokenType::Bang => RuntimeType::Boolean(!value.is_truthy()),
+          TokenType::Minus => match value {
+            RuntimeType::Number(n) => RuntimeType::Number(-n),
+            _ => RuntimeType::Nil()
+          },
+          _ => RuntimeType::Nil()
+        }
+      }
       _ => RuntimeType::Nil()
     }
   }
