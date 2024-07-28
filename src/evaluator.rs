@@ -43,6 +43,13 @@ impl Evaluator {
             },
             _ => RuntimeType::Nil()
           },
+          RuntimeType::String(ls) => match right_value {
+            RuntimeType::String(rs) => match token.token_type {
+              TokenType::Plus =>  RuntimeType::String(ls + &rs),
+              _ => RuntimeType::Nil()
+            },
+            _ => RuntimeType::Nil()
+          }
           _ => RuntimeType::Nil()
         }
       }
