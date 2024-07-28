@@ -70,25 +70,25 @@ impl Evaluator {
                     RuntimeType::String(_rs) => match token.token_type {
                       TokenType::EqualEqual => Ok(RuntimeType::Boolean(false)),
                       TokenType::BangEqual => Ok(RuntimeType::Boolean(true)),
-                      _ => Ok(RuntimeType::Nil())
+                      _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
-                    _ => Ok(RuntimeType::Nil())
+                    _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                   },
                   RuntimeType::String(ls) => match right_value {
                     RuntimeType::String(rs) => match token.token_type {
                       TokenType::Plus => Ok(RuntimeType::String(ls + &rs)),
                       TokenType::EqualEqual => Ok(RuntimeType::Boolean(ls == rs)),
                       TokenType::BangEqual => Ok(RuntimeType::Boolean(ls != rs)),
-                      _ => Ok(RuntimeType::Nil())
+                      _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
                     RuntimeType::Number(_rn) => match token.token_type {
                       TokenType::EqualEqual => Ok(RuntimeType::Boolean(false)),
                       TokenType::BangEqual => Ok(RuntimeType::Boolean(true)),
-                      _ => Ok(RuntimeType::Nil())
+                      _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
                     _ => Ok(RuntimeType::Nil())
                   },
-                  _ => Ok(RuntimeType::Nil())
+                  _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers or strings.\n[line {}]", token.line)))
                 }
               },
               Err(e) => Err(e)
