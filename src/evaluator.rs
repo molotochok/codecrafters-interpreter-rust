@@ -27,8 +27,25 @@ impl Evaluator {
           },
           _ => RuntimeType::Nil()
         }
+      },
+      Expression::Binary(left, token, right) => {
+        let left_value = Evaluator::evaluate(left);
+        let right_value = Evaluator::evaluate(right);
+
+        match left_value {
+          RuntimeType::Number(ln) => match right_value {
+            RuntimeType::Number(lr) => match token.token_type {
+              TokenType::Plus => RuntimeType::Number(ln + lr),
+              TokenType::Minus => RuntimeType::Number(ln - lr),
+              TokenType::Star => RuntimeType::Number(ln * lr),
+              TokenType::Slash => RuntimeType::Number(ln / lr),
+              _ => RuntimeType::Nil()
+            },
+            _ => RuntimeType::Nil()
+          },
+          _ => RuntimeType::Nil()
+        }
       }
-      _ => RuntimeType::Nil()
     }
   }
 }
