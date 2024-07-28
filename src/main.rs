@@ -83,5 +83,13 @@ fn parse<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
 }
 
 fn evaluate(expression: &Expression) {
-    println!("{}", Evaluator::evaluate(expression).to_string())
+    let result = Evaluator::evaluate(expression);
+
+    match result {
+        Ok(value) => println!("{}", value.to_string()),
+        Err(e) => {
+            eprintln!("{}", e.to_string());
+            process::exit(70);
+        }
+    }
 }
