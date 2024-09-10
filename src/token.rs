@@ -377,9 +377,9 @@ impl Token {
         while i < bytes.len() {
             let c = bytes[i] as char;
 
-            if c == '\n' {
-                break;
-            }
+            // if c == '\n' {
+            //     break;
+            // }
 
             if c == '"' {
                 match std::str::from_utf8(&bytes[index..i + 1]) {

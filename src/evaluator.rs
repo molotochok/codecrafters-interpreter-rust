@@ -3,12 +3,14 @@ use crate::{expression::Expression, token::TokenType, statement::Statement};
 use crate::runtime_type::RuntimeType;
 
 pub enum EvaluationError {
-  UnaryError(String)
+  UnaryError(String),
+  BinaryError(String)
 }
 impl EvaluationError {
   pub fn to_string(&self) -> String {
     match self {
-      EvaluationError::UnaryError(m) => m.to_owned()
+      EvaluationError::UnaryError(m) => m.to_owned(),
+      EvaluationError::BinaryError(m) => m.to_owned(),
     }
   }
 }
@@ -83,25 +85,33 @@ impl Evaluator {
                     RuntimeType::String(_rs) => match token.token_type {
                       TokenType::EqualEqual => Ok(RuntimeType::Boolean(false)),
                       TokenType::BangEqual => Ok(RuntimeType::Boolean(true)),
-                      _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                      _ => Err(EvaluationError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
-                    _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                    _ => Err(EvaluationError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                   },
                   RuntimeType::String(ls) => match right_value {
                     RuntimeType::String(rs) => match token.token_type {
                       TokenType::Plus => Ok(RuntimeType::String(ls + &rs)),
                       TokenType::EqualEqual => Ok(RuntimeType::Boolean(ls == rs)),
                       TokenType::BangEqual => Ok(RuntimeType::Boolean(ls != rs)),
-                      _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                      _ => Err(EvaluationError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
                     RuntimeType::Number(_rn) => match token.token_type {
                       TokenType::EqualEqual => Ok(RuntimeType::Boolean(false)),
                       TokenType::BangEqual => Ok(RuntimeType::Boolean(true)),
-                      _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                      _ => Err(EvaluationError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
-                    _ => Err(EvaluationError::UnaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                    _ => Err(EvaluationError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                   },
-                  _ => Err(EvaluationError::UnaryError(format!("Operands must be two numbers or two strings.\n[line {}]", token.line)))
+                  RuntimeType::Boolean(lb) => match right_value {
+                    RuntimeType::Boolean(rb) => match token.token_type {
+                      TokenType::EqualEqual => Ok(RuntimeType::Boolean(lb == rb)),
+                      TokenType::BangEqual => Ok(RuntimeType::Boolean(lb != rb)),
+                      _ => Err(EvaluationError::BinaryError(format!("Invalid comparison for booleans.\n[line {}]", token.line)))
+                    }
+                    _ => Err(EvaluationError::BinaryError(format!("Operands must be two booleans.\n[line {}]", token.line)))
+                  },
+                  _ => Err(EvaluationError::BinaryError(format!("Operands must be two numbers or two strings.\n[line {}]", token.line)))
                 }
               },
               Err(e) => Err(e)
