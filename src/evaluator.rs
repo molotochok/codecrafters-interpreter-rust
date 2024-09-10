@@ -1,4 +1,5 @@
-use crate::{expression::Expression, token::TokenType};
+use crate::evaluate;
+use crate::{expression::Expression, token::TokenType, statement::Statement};
 use crate::runtime_type::RuntimeType;
 
 pub enum EvaluationError {
@@ -14,6 +15,18 @@ impl EvaluationError {
 
 pub struct Evaluator;
 impl Evaluator {
+  // TODO: I might need to create a seperate class for this
+  pub fn evaluate_s(statement: &Statement) {
+    match statement {
+      Statement::Print(e) => {
+        match Evaluator::evaluate(e) {
+          Ok(t) => println!("{}", t.to_string()),
+          Err(e) => return
+        }
+      }
+    }
+  } 
+
   pub fn evaluate<'a>(expression: &'a Expression) -> Result<RuntimeType, EvaluationError> {
     match expression {
       Expression::Literal(token) => {

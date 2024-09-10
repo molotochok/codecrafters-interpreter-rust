@@ -1,26 +1,59 @@
 use crate::token::{Token, TokenType};
 use crate::expression::Expression;
+use crate::statement::Statement;
 
 pub struct Parser;
 
 #[derive(Debug)]
 pub enum ParseError {
-  MissingToken(),
-  UnmatchedParentheses(String),
+  MissingToken(TokenType),
+  UnmatchedParentheses(),
 }
 
 impl ParseError {
   pub fn to_string(&self) -> String {
     match self {
-      ParseError::MissingToken() => String::from(""),
-      ParseError::UnmatchedParentheses(e) => e.to_string()
+      ParseError::MissingToken(t) => format!("Missing Token: {}.", t.to_string()),
+      ParseError::UnmatchedParentheses() => format!("Error: Unmatched parentheses")
     }
   }
 }
 
 impl Parser {
-  pub fn parse<'a>(tokens: &'a Vec<Token>) -> Result<Expression<'a>, ParseError> {
+  pub fn parse_expression<'a>(tokens: &'a Vec<Token>) -> Result<Expression<'a>, ParseError> {
     Parser::expression(tokens, &mut 0)
+  }
+
+  pub fn parse<'a>(tokens: &'a Vec<Token>) -> Result<Vec<Statement<'a>>, ParseError> {
+    Parser::statements(tokens, &mut 0)
+  }
+
+  fn statements<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Vec<Statement<'a>>, ParseError> {
+    let mut statements: Vec<Statement> = Vec::new();
+
+    loop {
+      match Parser::check_token(tokens, index, &[TokenType::Print]) {
+        Some(_t1) => {
+          
+          let expression = Parser::expression(tokens, index);
+          
+          if expression.is_err() {
+            return Err(expression.err().unwrap());
+          }
+
+          let semicolon = Parser::check_token(tokens, index, &[TokenType::Semicolon]);
+
+          if semicolon.is_none() {
+            return Err(ParseError::MissingToken(TokenType::Semicolon))
+          }
+
+          statements.push(Statement::Print(Box::new(expression.unwrap())));
+        },
+        None => break
+      }
+    }
+
+    Ok(statements)
   }
 
   fn expression<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParseError> {
@@ -164,10 +197,10 @@ impl Parser {
           Some(_) => {
             return Ok(Expression::Grouping(Box::new(expression.unwrap())));
           },
-          None => Err(ParseError::UnmatchedParentheses(format!("Error: Unmatched parentheses.")))
+          None => Err(ParseError::UnmatchedParentheses())
         }
       },
-      None => Err(ParseError::MissingToken())
+      None => Err(ParseError::MissingToken(TokenType::LeftParen))
     }  
   }
 

@@ -5,6 +5,7 @@ use std::process;
 
 mod token; use token::Token;
 mod parser; use parser::Parser;
+mod statement; use statement::Statement;
 mod expression; use expression::Expression;
 mod evaluator; use evaluator::Evaluator;
 mod runtime_type;
@@ -25,13 +26,18 @@ fn main() {
         },
         "parse" => {
             let tokens = tokenize(filename, false);
-            parse(&tokens, true);
+            parse_expression(&tokens, true);
         },
         "evaluate" => {
             let tokens = tokenize(filename, false);
-            let expression = parse(&tokens, false);
+            let expression = parse_expression(&tokens, false);
             evaluate(&expression);
         },
+        "run" => {
+            let tokens = tokenize(filename, false);
+            let statements = parse_statement(&tokens, false);
+            run(statements)
+        }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
@@ -64,8 +70,8 @@ fn tokenize(filename: &String, print_tokens: bool) -> Vec<Token> {
     tokens
 }
 
-fn parse<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
-    let expression = Parser::parse(tokens);
+fn parse_expression<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
+    let expression = Parser::parse_expression(tokens);
 
     match expression {
         Ok(e) => {
@@ -80,6 +86,32 @@ fn parse<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
             process::exit(65);
         }
     };
+}
+
+fn parse_statement<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>> {
+    let result = Parser::parse(tokens);
+
+    match result {
+        Ok(statements) => {
+            if print {
+                for statement in &statements {
+                    println!("{}", statement.to_string())
+                }
+            }
+            
+            return statements;
+        },
+        Err(e) => {
+            eprintln!("{}", e.to_string());
+            process::exit(65);
+        }
+    };
+}
+
+fn run(statements: Vec<Statement>) {
+    for statement in &statements {
+        Evaluator::evaluate_s(statement)
+    }
 }
 
 fn evaluate(expression: &Expression) {

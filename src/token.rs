@@ -14,7 +14,7 @@ pub enum TokenizeError {
     UndeterminedString(String)
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum TokenType {
     // *** Single Character ***
     LeftParen, RightParen, LeftBrace, RightBrace, Comma, Dot, Plus, Star, Minus, Semicolon, Space, Tab,
@@ -26,6 +26,12 @@ pub enum TokenType {
     String, Number, Identifier,
     // *** End ***
     EOL, EOF
+}
+
+impl std::fmt::Display for TokenType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
 }
 
 impl Token {
