@@ -1,4 +1,4 @@
-use crate::expression::{evaluator::{ExprEvalError, ExprEvaluator}, expr_type::ExprType};
+use crate::{expression::{evaluator::{ExprEvalError, ExprEvaluator}, expr_type::ExprType}, ENV};
 use super::Statement;
 
 pub enum StmtEvalError {
@@ -25,6 +25,18 @@ impl StmtEvaluator {
       Statement::Expression(e) => {
         match ExprEvaluator::evaluate(e) {
           Ok(_r) => return Ok(None),
+          Err(e) => Err(StmtEvalError::ExpressionError(e))
+        }
+      },
+      Statement::Var(token, e) => {
+        match ExprEvaluator::evaluate(e) {
+          Ok(t) => {
+            match ENV.lock().unwrap().as_mut() {
+              Some(env) => env.set(token.lexeme.to_string(), t),
+              None => return Err(StmtEvalError::ExpressionError(ExprEvalError::MissingEnvironment()))
+            }
+            return Ok(None)
+          },
           Err(e) => Err(StmtEvalError::ExpressionError(e))
         }
       }

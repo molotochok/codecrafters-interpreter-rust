@@ -1,4 +1,5 @@
 use crate::parser::parser_error::ParserError;
+use crate::parser::parser_utils::ParserUtils;
 use crate::token::{Token, TokenType};
 use crate::expression::Expression;
 
@@ -23,7 +24,7 @@ impl ExprParser {
 
     let mut expression = left.unwrap();
     loop {
-      match ExprParser::match_advance(tokens, index, &[TokenType::BangEqual, TokenType::Equal]) {
+      match ParserUtils::match_advance(tokens, index, &[TokenType::BangEqual, TokenType::Equal]) {
         Some(token) => {
           let right = ExprParser::comparison(tokens, index);
 
@@ -49,7 +50,7 @@ impl ExprParser {
 
     let mut expression = left.unwrap();
     loop {
-      match ExprParser::match_advance(tokens, index, &[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual, TokenType::EqualEqual]) {
+      match ParserUtils::match_advance(tokens, index, &[TokenType::Greater, TokenType::GreaterEqual, TokenType::Less, TokenType::LessEqual, TokenType::EqualEqual]) {
         Some(token) => {
           let right = ExprParser::term(tokens, index);
 
@@ -75,7 +76,7 @@ impl ExprParser {
 
     let mut expression = left.unwrap();
     loop {
-      match ExprParser::match_advance(tokens, index, &[TokenType::Minus, TokenType::Plus]) {
+      match ParserUtils::match_advance(tokens, index, &[TokenType::Minus, TokenType::Plus]) {
         Some(token) => {
           let right = ExprParser::factor(tokens, index);
 
@@ -101,7 +102,7 @@ impl ExprParser {
 
     let mut expression = left.unwrap();
     loop {
-      match ExprParser::match_advance(tokens, index, &[TokenType::Slash, TokenType::Star]) {
+      match ParserUtils::match_advance(tokens, index, &[TokenType::Slash, TokenType::Star]) {
         Some(token) => {
           let right = ExprParser::unary(tokens, index);
 
@@ -119,7 +120,7 @@ impl ExprParser {
   }
 
   fn unary<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
-    match ExprParser::match_advance(tokens, index, &[TokenType::Bang, TokenType::Minus]) {
+    match ParserUtils::match_advance(tokens, index, &[TokenType::Bang, TokenType::Minus]) {
       Some(token) => {
         let right = ExprParser::unary(tokens, index);
 
@@ -134,12 +135,17 @@ impl ExprParser {
   }
 
   fn primary<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
-    match ExprParser::match_advance(tokens, index, &[TokenType::False, TokenType::True, TokenType:: Nil, TokenType::Number, TokenType::String]) {
+    match ParserUtils::match_advance(tokens, index, &[TokenType::False, TokenType::True, TokenType:: Nil, TokenType::Number, TokenType::String]) {
       Some(token) => return Ok(Expression::Literal(token)),
       None => {}
     };
 
-    match ExprParser::match_advance(tokens, index, &[TokenType::LeftParen]) {
+    match ParserUtils::match_advance(tokens, index, &[TokenType::Identifier]) {
+      Some(token) => return Ok(Expression::Variable(token)),
+      None => {}
+    }
+
+    match ParserUtils::match_advance(tokens, index, &[TokenType::LeftParen]) {
       Some(_) => {
         let expression = ExprParser::expression(tokens, index);
 
@@ -147,41 +153,14 @@ impl ExprParser {
           return expression;
         }
         
-        match ExprParser::match_advance(tokens, index, &[TokenType::RightParen]) {
+        match ParserUtils::match_advance(tokens, index, &[TokenType::RightParen]) {
           Some(_) => {
             return Ok(Expression::Grouping(Box::new(expression.unwrap())));
           },
           None => Err(ParserError::UnmatchedParentheses())
         }
       },
-      None => {
-        Err(ParserError::ExpectExpression())
-      }
+      None => Err(ParserError::ExpectExpression())
     }  
-  }
-
-  /** Utils **/
-  fn match_advance<'a>(tokens: &'a Vec<Token>, index: &mut usize, token_types: &[TokenType]) -> Option<&'a Token> {
-    if index >= &mut tokens.len() { return None; }
-    
-    let token = &tokens[index.to_owned()];
-
-    if ExprParser::matches(token, &[TokenType::EOL, TokenType::EOF, TokenType::Semicolon]) { return None; }
-    if ExprParser::matches(token, token_types) {
-      *index += 1;
-      return Some(token);
-    }
-
-    None
-  }
-
-  fn matches(token: &Token, token_types: &[TokenType]) -> bool {
-    for token_type in token_types {
-      if token_type == &token.token_type {
-        return true;
-      }
-    }
-
-    false
   }
 }

@@ -2,15 +2,22 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
+use std::sync::Mutex;
 
-mod token; use expression::evaluator::ExprEvaluator;
+mod token; use environment::Environment;
+use expression::evaluator::ExprEvaluator;
 use statement::evaluator::StmtEvaluator;
 use token::Token;
 mod parser; use parser::Parser;
 mod statement; use statement::Statement;
 mod expression; use expression::Expression;
+mod environment;
+
+static ENV: Mutex<Option<Environment>> = Mutex::new(None);
 
 fn main() {
+    *ENV.lock().unwrap() = Some(Environment::new());
+
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         writeln!(io::stderr(), "Usage: {} tokenize <filename>", args[0]).unwrap();

@@ -1,4 +1,5 @@
 pub mod parser_error;
+pub mod parser_utils;
 
 use parser_error::ParserError;
 

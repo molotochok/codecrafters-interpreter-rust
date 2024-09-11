@@ -1,15 +1,20 @@
+use crate::ENV;
 use crate::{expression::Expression, token::TokenType};
 use crate::expression::expr_type::ExprType;
 
 pub enum ExprEvalError {
   UnaryError(String),
-  BinaryError(String)
+  BinaryError(String),
+  UndefinedVariable(String),
+  MissingEnvironment(),
 }
 impl ExprEvalError {
   pub fn to_string(&self) -> String {
     match self {
       ExprEvalError::UnaryError(m) => m.to_owned(),
       ExprEvalError::BinaryError(m) => m.to_owned(),
+      ExprEvalError::UndefinedVariable(name) => format!("Variable '{}' is undefined", name),
+      ExprEvalError::MissingEnvironment() => format!("Environment is missing")
     }
   }
 }
@@ -18,6 +23,15 @@ pub struct ExprEvaluator;
 impl ExprEvaluator {
   pub fn evaluate<'a>(expression: &'a Expression) -> Result<ExprType, ExprEvalError> {
     match expression {
+      Expression::Variable(token) => {
+        match ENV.lock().unwrap().as_mut() {
+          Some(env) => match env.get(&token.lexeme.to_string()) {
+            Some(v) => Ok(v.clone()),
+            None => Err(ExprEvalError::UndefinedVariable(token.lexeme.to_string()))
+          },
+          None => Err(ExprEvalError::MissingEnvironment())
+        }
+      },
       Expression::Literal(token) => {
         match token.token_type {
           TokenType::Nil => Ok(ExprType::Nil()),
