@@ -1,3 +1,7 @@
+pub mod parser;
+pub mod evaluator;
+pub mod expr_type;
+
 use std::borrow::Cow;
 use crate::token::{Token, TokenType};
 

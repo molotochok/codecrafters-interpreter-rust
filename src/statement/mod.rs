@@ -1,3 +1,6 @@
+pub mod evaluator;
+pub mod parser;
+
 use crate::expression::Expression;
 
 pub enum Statement<'a> {

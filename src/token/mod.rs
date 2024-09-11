@@ -377,10 +377,6 @@ impl Token {
         while i < bytes.len() {
             let c = bytes[i] as char;
 
-            // if c == '\n' {
-            //     break;
-            // }
-
             if c == '"' {
                 match std::str::from_utf8(&bytes[index..i + 1]) {
                     Ok(s) => return Ok(Token::t_literal(s.to_owned(), s[1..s.len() - 1].to_owned(), line)),

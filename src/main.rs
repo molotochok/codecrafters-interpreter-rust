@@ -3,12 +3,12 @@ use std::fs;
 use std::io::{self, Write};
 use std::process;
 
-mod token; use token::Token;
+mod token; use expression::evaluator::ExprEvaluator;
+use statement::evaluator::StmtEvaluator;
+use token::Token;
 mod parser; use parser::Parser;
 mod statement; use statement::Statement;
 mod expression; use expression::Expression;
-mod evaluator; use evaluator::Evaluator;
-mod runtime_type;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -26,17 +26,13 @@ fn main() {
         },
         "parse" => {
             let tokens = tokenize(filename, false);
-            parse_expression(&tokens, true);
+            parse_expr(&tokens, true);
         },
         "evaluate" => {
-            let tokens = tokenize(filename, false);
-            let expression = parse_expression(&tokens, false);
-            evaluate(&expression);
+            evaluate_expr(filename);
         },
         "run" => {
-            let tokens = tokenize(filename, false);
-            let statements = parse_statement(&tokens, false);
-            run(statements)
+            run(filename)
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
@@ -70,7 +66,7 @@ fn tokenize(filename: &String, print_tokens: bool) -> Vec<Token> {
     tokens
 }
 
-fn parse_expression<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
+fn parse_expr<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
     let expression = Parser::parse_expression(tokens);
 
     match expression {
@@ -88,8 +84,23 @@ fn parse_expression<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<
     };
 }
 
-fn parse_statement<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>> {
-    let result = Parser::parse(tokens);
+fn evaluate_expr(filename: &String) {
+    let tokens = tokenize(filename, false);
+    let expression = parse_expr(&tokens, false);
+
+    let result = ExprEvaluator::evaluate(&expression);
+
+    match result {
+        Ok(value) => println!("{}", value.to_string()),
+        Err(e) => {
+            eprintln!("{}", e.to_string());
+            process::exit(70);
+        }
+    }
+}
+
+fn parse_stmt<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>> {
+    let result = Parser::parse_statements(tokens);
 
     match result {
         Ok(statements) => {
@@ -108,9 +119,12 @@ fn parse_statement<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>
     };
 }
 
-fn run(statements: Vec<Statement>) {
+fn run(filename: &String) {
+    let tokens = tokenize(filename, false);
+    let statements = parse_stmt(&tokens, false);
+
     for statement in &statements {
-        match Evaluator::evaluate_s(statement) {
+        match StmtEvaluator::evaluate(statement) {
             Ok(r) => {
                 match r {
                     Some(v) => println!("{}", v.to_string()),
@@ -121,18 +135,6 @@ fn run(statements: Vec<Statement>) {
                 eprintln!("{}", e.to_string());
                 process::exit(70);
             }
-        }
-    }
-}
-
-fn evaluate(expression: &Expression) {
-    let result = Evaluator::evaluate(expression);
-
-    match result {
-        Ok(value) => println!("{}", value.to_string()),
-        Err(e) => {
-            eprintln!("{}", e.to_string());
-            process::exit(70);
         }
     }
 }
