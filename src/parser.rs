@@ -8,13 +8,15 @@ pub struct Parser;
 pub enum ParseError {
   MissingToken(TokenType),
   UnmatchedParentheses(),
+  ExpectExpression(),
 }
 
 impl ParseError {
   pub fn to_string(&self) -> String {
     match self {
       ParseError::MissingToken(t) => format!("Missing Token: {}.", t.to_string()),
-      ParseError::UnmatchedParentheses() => format!("Error: Unmatched parentheses")
+      ParseError::UnmatchedParentheses() => format!("Error: Unmatched parentheses"),
+      ParseError::ExpectExpression() => format!("Expect expression")
     }
   }
 }
@@ -31,25 +33,40 @@ impl Parser {
   fn statements<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Vec<Statement<'a>>, ParseError> {
     let mut statements: Vec<Statement> = Vec::new();
 
-    loop {
+    while *index < tokens.len() {
       match Parser::check_token(tokens, index, &[TokenType::Print]) {
         Some(_t1) => {
-          
           let expression = Parser::expression(tokens, index);
           
           if expression.is_err() {
             return Err(expression.err().unwrap());
           }
 
-          let semicolon = Parser::check_token(tokens, index, &[TokenType::Semicolon]);
-
-          if semicolon.is_none() {
+          if !Parser::matches(&tokens[*index], &[TokenType::Semicolon]) {
             return Err(ParseError::MissingToken(TokenType::Semicolon))
           }
+          *index += 1;
 
           statements.push(Statement::Print(Box::new(expression.unwrap())));
         },
-        None => break
+        None => {
+          if Parser::matches(&tokens[*index], &[TokenType::EOF, TokenType::EOL]) {
+            break;
+          }
+
+          let expression = Parser::expression(tokens, index);
+          
+          if expression.is_err() {
+            return Err(expression.err().unwrap());
+          }
+
+          if !Parser::matches(&tokens[*index], &[TokenType::Semicolon]) {
+            return Err(ParseError::MissingToken(TokenType::Semicolon))
+          }
+          *index += 1;
+
+          statements.push(Statement::Expression(Box::new(expression.unwrap())));
+        }
       }
     }
 
@@ -200,7 +217,9 @@ impl Parser {
           None => Err(ParseError::UnmatchedParentheses())
         }
       },
-      None => Err(ParseError::MissingToken(TokenType::LeftParen))
+      None => {
+        Err(ParseError::ExpectExpression())
+      }
     }  
   }
 
@@ -210,7 +229,7 @@ impl Parser {
     
     let token = &tokens[index.to_owned()];
 
-    if Parser::matches(token, &[TokenType::EOL, TokenType::EOF]) { return None; }
+    if Parser::matches(token, &[TokenType::EOL, TokenType::EOF, TokenType::Semicolon]) { return None; }
     if Parser::matches(token, token_types) {
       *index += 1;
       return Some(token);

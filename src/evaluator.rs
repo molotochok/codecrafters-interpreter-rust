@@ -18,12 +18,18 @@ impl EvaluationError {
 pub struct Evaluator;
 impl Evaluator {
   // TODO: I might need to create a seperate class for this
-  pub fn evaluate_s(statement: &Statement) {
+  pub fn evaluate_s(statement: &Statement) -> Result<Option<RuntimeType>, EvaluationError> {
     match statement {
       Statement::Print(e) => {
         match Evaluator::evaluate(e) {
-          Ok(t) => println!("{}", t.to_string()),
-          Err(e) => return
+          Ok(t) => Ok(Some(t)),
+          Err(e) => Err(e)
+        }
+      },
+      Statement::Expression(e) => {
+        match Evaluator::evaluate(e) {
+          Ok(_r) => return Ok(None),
+          Err(e) => Err(e)
         }
       }
     }
@@ -109,7 +115,7 @@ impl Evaluator {
                       TokenType::BangEqual => Ok(RuntimeType::Boolean(lb != rb)),
                       _ => Err(EvaluationError::BinaryError(format!("Invalid comparison for booleans.\n[line {}]", token.line)))
                     }
-                    _ => Err(EvaluationError::BinaryError(format!("Operands must be two booleans.\n[line {}]", token.line)))
+                    _ => Err(EvaluationError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                   },
                   _ => Err(EvaluationError::BinaryError(format!("Operands must be two numbers or two strings.\n[line {}]", token.line)))
                 }

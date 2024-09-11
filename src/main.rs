@@ -110,7 +110,18 @@ fn parse_statement<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>
 
 fn run(statements: Vec<Statement>) {
     for statement in &statements {
-        Evaluator::evaluate_s(statement)
+        match Evaluator::evaluate_s(statement) {
+            Ok(r) => {
+                match r {
+                    Some(v) => println!("{}", v.to_string()),
+                    None => {}
+                }
+            },
+            Err(e) => {
+                eprintln!("{}", e.to_string());
+                process::exit(70);
+            }
+        }
     }
 }
 
