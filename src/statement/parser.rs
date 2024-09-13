@@ -39,9 +39,17 @@ impl StmtParser {
       Some(identifier) => match ParserUtils::match_advance(tokens, index, &[TokenType::Equal]) {
         Some(_equal) => {
           let value = StmtParser::expression(tokens, index);
-          return Ok(Some(Statement::Var(identifier, Box::new(value.unwrap()))))
+          Ok(Some(Statement::Var(identifier, Box::new(value.unwrap()))))
         },
-        None => Ok(None),
+        None => {
+          if &tokens[*index].token_type != &TokenType::Semicolon {
+            return Err(ParserError::MissingToken(TokenType::Semicolon));
+          }
+
+          *index += 1;
+
+          Ok(Some(Statement::Var(identifier, Box::new(Expression::Nil()))))
+        },
       },
       None => Err(ParserError::ExpectExpression())
     }

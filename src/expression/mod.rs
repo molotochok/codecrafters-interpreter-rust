@@ -10,7 +10,8 @@ pub enum Expression<'a> {
   Unary(&'a Token, Box<Expression<'a>>),
   Binary(Box<Expression<'a>>, &'a Token, Box<Expression<'a>>),
   Grouping(Box<Expression<'a>>),
-  Variable(&'a Token)
+  Variable(&'a Token),
+  Nil()
 }
 
 impl<'a> Expression<'a> {
@@ -25,7 +26,8 @@ impl<'a> Expression<'a> {
       Expression::Unary(token, right) => Expression::parenthesize(&token.lexeme, &[right]),
       Expression::Binary(left, token, right) => Expression::parenthesize(&token.lexeme, &[left, right]),
       Expression::Grouping(expr) => Expression::parenthesize(&Cow::Borrowed("group"), &[expr]),
-      Expression::Variable(token) => token.lexeme.to_string()
+      Expression::Variable(token) => token.lexeme.to_string(),
+      Expression::Nil() => format!("nil")
     }
   }
 

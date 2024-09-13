@@ -23,6 +23,7 @@ pub struct ExprEvaluator;
 impl ExprEvaluator {
   pub fn evaluate<'a>(expression: &'a Expression) -> Result<ExprType, ExprEvalError> {
     match expression {
+      Expression::Nil() => Ok(ExprType::Nil()),
       Expression::Variable(token) => {
         match ENV.lock().unwrap().as_mut() {
           Some(env) => match env.get(&token.lexeme.to_string()) {
