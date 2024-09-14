@@ -1,2 +1,5 @@
-var foo;
-print foo;
+var bar = 61;
+var hello = 65;
+hello = bar;
+bar = hello;
+print bar + hello;

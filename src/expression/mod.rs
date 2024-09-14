@@ -1,6 +1,7 @@
 pub mod parser;
 pub mod evaluator;
 pub mod expr_type;
+pub mod expr_eval_error;
 
 use std::borrow::Cow;
 use crate::token::{Token, TokenType};
@@ -11,6 +12,7 @@ pub enum Expression<'a> {
   Binary(Box<Expression<'a>>, &'a Token, Box<Expression<'a>>),
   Grouping(Box<Expression<'a>>),
   Variable(&'a Token),
+  Assign(&'a Token, Box<Expression<'a>>),
   Nil()
 }
 
@@ -27,6 +29,7 @@ impl<'a> Expression<'a> {
       Expression::Binary(left, token, right) => Expression::parenthesize(&token.lexeme, &[left, right]),
       Expression::Grouping(expr) => Expression::parenthesize(&Cow::Borrowed("group"), &[expr]),
       Expression::Variable(token) => token.lexeme.to_string(),
+      Expression::Assign(token, expression) => format!("{} = {}", token.lexeme, expression.to_string()),
       Expression::Nil() => format!("nil")
     }
   }

@@ -12,7 +12,27 @@ impl ExprParser {
   }
 
   pub fn expression<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
-    ExprParser::equality(tokens, index)
+    ExprParser::assignment(tokens, index)
+  }
+
+  pub fn assignment<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+    match ExprParser::equality(tokens, index) {
+      Ok(expr) => {
+        match ParserUtils::match_advance(tokens, index, &[TokenType::Equal]) {
+          Some(_equal) => {
+            match ExprParser::assignment(tokens, index) {
+              Ok(value) => match expr {
+                Expression::Variable(token) => return Ok(Expression::Assign(token, Box::new(value))),
+                _ => Err(ParserError::InvalidAssignment(expr.to_string())),
+              },
+              Err(_e) => Err(ParserError::InvalidAssignment(expr.to_string()))
+            }
+          },
+          None => Ok(expr)
+        }
+      },
+      Err(e) => Err(e)
+    }
   }
 
   fn equality<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
@@ -24,7 +44,7 @@ impl ExprParser {
 
     let mut expression = left.unwrap();
     loop {
-      match ParserUtils::match_advance(tokens, index, &[TokenType::BangEqual, TokenType::Equal]) {
+      match ParserUtils::match_advance(tokens, index, &[TokenType::BangEqual, TokenType::EqualEqual]) {
         Some(token) => {
           let right = ExprParser::comparison(tokens, index);
 
@@ -143,7 +163,7 @@ impl ExprParser {
     match ParserUtils::match_advance(tokens, index, &[TokenType::Identifier]) {
       Some(token) => return Ok(Expression::Variable(token)),
       None => {}
-    }
+    };
 
     match ParserUtils::match_advance(tokens, index, &[TokenType::LeftParen]) {
       Some(_) => {

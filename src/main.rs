@@ -2,7 +2,6 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
-use std::sync::Mutex;
 
 mod token; use environment::Environment;
 use expression::evaluator::ExprEvaluator;
@@ -13,11 +12,7 @@ mod statement; use statement::Statement;
 mod expression; use expression::Expression;
 mod environment;
 
-static ENV: Mutex<Option<Environment>> = Mutex::new(None);
-
 fn main() {
-    *ENV.lock().unwrap() = Some(Environment::new());
-
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         writeln!(io::stderr(), "Usage: {} tokenize <filename>", args[0]).unwrap();
@@ -26,6 +21,8 @@ fn main() {
 
     let command = &args[1];
     let filename = &args[2];
+
+    let mut env = Environment::new();
 
     match command.as_str() {
         "tokenize" => {
@@ -36,10 +33,10 @@ fn main() {
             parse_expr(&tokens, true);
         },
         "evaluate" => {
-            evaluate_expr(filename);
+            evaluate_expr(filename, &mut env);
         },
         "run" => {
-            run(filename)
+            run(filename, &mut env);
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
@@ -91,11 +88,11 @@ fn parse_expr<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
     };
 }
 
-fn evaluate_expr(filename: &String) {
-    let tokens = tokenize(filename, false);
-    let expression = parse_expr(&tokens, false);
+fn evaluate_expr(filename: &String, env: &mut Environment) {
+    let tokens = tokenize(filename,  false);
+    let expression = parse_expr(&tokens,  false);
 
-    let result = ExprEvaluator::evaluate(&expression);
+    let result = ExprEvaluator::evaluate(&expression, env);
 
     match result {
         Ok(value) => println!("{}", value.to_string()),
@@ -126,17 +123,15 @@ fn parse_stmt<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>> {
     };
 }
 
-fn run(filename: &String) {
+fn run(filename: &String, env: &mut Environment) {
     let tokens = tokenize(filename, false);
     let statements = parse_stmt(&tokens, false);
 
     for statement in &statements {
-        match StmtEvaluator::evaluate(statement) {
-            Ok(r) => {
-                match r {
-                    Some(v) => println!("{}", v.to_string()),
-                    None => {}
-                }
+        match StmtEvaluator::evaluate(statement, env) {
+            Ok(r) => match r {
+                Some(v) => println!("{}", v.to_string()),
+                None => {}
             },
             Err(e) => {
                 eprintln!("{}", e.to_string());

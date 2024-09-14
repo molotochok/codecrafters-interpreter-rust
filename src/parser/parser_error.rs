@@ -5,6 +5,7 @@ pub enum ParserError {
   MissingToken(TokenType),
   UnmatchedParentheses(),
   ExpectExpression(),
+  InvalidAssignment(String)
 }
 
 impl ParserError {
@@ -12,7 +13,8 @@ impl ParserError {
     match self {
       ParserError::MissingToken(t) => format!("Missing Token: {}.", t.to_string()),
       ParserError::UnmatchedParentheses() => format!("Error: Unmatched parentheses"),
-      ParserError::ExpectExpression() => format!("Expect expression")
+      ParserError::ExpectExpression() => format!("Expect expression"),
+      ParserError::InvalidAssignment(expr) => format!("{}", expr)
     }
   }
 }

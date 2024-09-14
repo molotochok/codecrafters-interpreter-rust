@@ -1,36 +1,29 @@
-use crate::ENV;
+use crate::environment::Environment;
 use crate::{expression::Expression, token::TokenType};
 use crate::expression::expr_type::ExprType;
-
-pub enum ExprEvalError {
-  UnaryError(String),
-  BinaryError(String),
-  UndefinedVariable(String),
-  MissingEnvironment(),
-}
-impl ExprEvalError {
-  pub fn to_string(&self) -> String {
-    match self {
-      ExprEvalError::UnaryError(m) => m.to_owned(),
-      ExprEvalError::BinaryError(m) => m.to_owned(),
-      ExprEvalError::UndefinedVariable(name) => format!("Variable '{}' is undefined", name),
-      ExprEvalError::MissingEnvironment() => format!("Environment is missing")
-    }
-  }
-}
+use crate::expression::expr_eval_error::ExprEvalError;
 
 pub struct ExprEvaluator;
+
 impl ExprEvaluator {
-  pub fn evaluate<'a>(expression: &'a Expression) -> Result<ExprType, ExprEvalError> {
+  pub fn evaluate<'a>(expression: &'a Expression, env: &mut Environment) -> Result<ExprType, ExprEvalError> {
     match expression {
       Expression::Nil() => Ok(ExprType::Nil()),
-      Expression::Variable(token) => {
-        match ENV.lock().unwrap().as_mut() {
-          Some(env) => match env.get(&token.lexeme.to_string()) {
-            Some(v) => Ok(v.clone()),
-            None => Err(ExprEvalError::UndefinedVariable(token.lexeme.to_string()))
+      Expression::Assign(token, expression) => {
+        match ExprEvaluator::evaluate(expression, env) {
+          Ok(value) => {
+            match env.assign(token.lexeme.to_string(), value.clone()) {
+              Ok(()) => Ok(value),
+              Err(e) => Err(e)
+            }
           },
-          None => Err(ExprEvalError::MissingEnvironment())
+          Err(e) => Err(e)
+        }
+      },
+      Expression::Variable(token) => {
+        match env.get(&token.lexeme.to_string()) {
+          Some(v) => Ok(v.clone()),
+          None => Err(ExprEvalError::UndefinedVariable(token.lexeme.to_string()))
         }
       },
       Expression::Literal(token) => {
@@ -42,9 +35,9 @@ impl ExprEvaluator {
           _ => Ok(ExprType::Nil())
         }
       },
-      Expression::Grouping(e) => ExprEvaluator::evaluate(e),
+      Expression::Grouping(e) => ExprEvaluator::evaluate(e, env),
       Expression::Unary(token, e) => {
-        let value = ExprEvaluator::evaluate(e);
+        let value = ExprEvaluator::evaluate(e, env);
 
         match value {
           Ok(v) => {
@@ -61,11 +54,11 @@ impl ExprEvaluator {
         }
       },
       Expression::Binary(left, token, right) => {
-        let left_value_r = ExprEvaluator::evaluate(left);
+        let left_value_r = ExprEvaluator::evaluate(left, env);
       
         match left_value_r {
           Ok(left_value) => {
-            let right_value_r = ExprEvaluator::evaluate(right);
+            let right_value_r = ExprEvaluator::evaluate(right, env);
 
             match right_value_r {
               Ok(right_value) => {
