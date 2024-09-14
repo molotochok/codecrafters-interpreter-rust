@@ -1,14 +1,18 @@
-use std::collections::HashMap;
-
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use crate::expression::{expr_eval_error::ExprEvalError, expr_type::ExprType};
 
-pub struct Environment {
-  map: HashMap<String, ExprType>
+pub struct Environment{
+  enclosing: Option<Rc<RefCell<Environment>>>,
+  map: Box<HashMap<String, ExprType>>
 }
 
 impl Environment {
-  pub fn new() -> Self {
-    Self { map: HashMap::new() }
+  pub fn global() -> Self {
+    Self { enclosing: None, map: Box::new(HashMap::new())}
+  }
+
+  pub fn local(enclosing: Rc<RefCell<Environment>>) -> Self {
+    Self { enclosing: Some(enclosing), map: Box::new(HashMap::new())}
   }
 
   // Example usage: var a = 2;
@@ -23,12 +27,21 @@ impl Environment {
       return Ok(());
     }
 
-    Err(ExprEvalError::UndefinedVariable(key))
+    match &self.enclosing {
+      Some(enclosing) => enclosing.borrow_mut().assign(key, value),
+      None => Err(ExprEvalError::UndefinedVariable(key))
+    }
   }
 
   // Example usage: print a;
-  pub fn get(&mut self, key: &String) -> Option<&ExprType> {
-    self.map.get(key)
+  pub fn get(&self, key: &String) -> Option<RefCell<ExprType>> {
+    match self.map.get(key) {
+      Some(v) => Some(RefCell::new(v.clone())),
+      None => match &self.enclosing {
+        Some(enclosing) => enclosing.borrow_mut().get(key),
+        None => None
+      }
+    }
   }
 }
 

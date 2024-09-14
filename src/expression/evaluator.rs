@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::environment::Environment;
 use crate::{expression::Expression, token::TokenType};
 use crate::expression::expr_type::ExprType;
@@ -6,13 +9,13 @@ use crate::expression::expr_eval_error::ExprEvalError;
 pub struct ExprEvaluator;
 
 impl ExprEvaluator {
-  pub fn evaluate<'a>(expression: &'a Expression, env: &mut Environment) -> Result<ExprType, ExprEvalError> {
+  pub fn evaluate<'a>(expression: &'a Expression, env: &Rc<RefCell<Environment>>) -> Result<ExprType, ExprEvalError> {
     match expression {
       Expression::Nil() => Ok(ExprType::Nil()),
       Expression::Assign(token, expression) => {
         match ExprEvaluator::evaluate(expression, env) {
           Ok(value) => {
-            match env.assign(token.lexeme.to_string(), value.clone()) {
+            match env.borrow_mut().assign(token.lexeme.to_string(), value.clone()) {
               Ok(()) => Ok(value),
               Err(e) => Err(e)
             }
@@ -21,8 +24,8 @@ impl ExprEvaluator {
         }
       },
       Expression::Variable(token) => {
-        match env.get(&token.lexeme.to_string()) {
-          Some(v) => Ok(v.clone()),
+        match env.borrow().get(&token.lexeme.to_string()) {
+          Some(v) => Ok(v.into_inner()),
           None => Err(ExprEvalError::UndefinedVariable(token.lexeme.to_string()))
         }
       },

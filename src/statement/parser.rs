@@ -58,6 +58,34 @@ impl StmtParser {
   fn statement<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Option<Statement<'a>>, ParserError> {
     match tokens[*index].token_type {
       TokenType::EOL | TokenType::EOF => Ok(None),
+      TokenType::LeftBrace => {
+        *index += 1;
+
+        let mut statements: Vec<Statement<'a>> = Vec::new();
+
+        loop {
+          let token = &tokens[*index];
+
+          if ParserUtils::matches(token, &[TokenType::RightBrace]) {
+            *index += 1;
+            break;
+          }
+          
+          if ParserUtils::matches(token, &[TokenType::EOF]) {
+            return Err(ParserError::MissingToken(TokenType::RightBrace));
+          }
+
+          match StmtParser::declaration(tokens, index) {
+            Ok(declaration) => match declaration {
+              Some(statement) => statements.push(statement),
+              None => {}
+            },
+            Err(e) => { return Err(e); }
+          };
+        };
+
+        Ok(Some(Statement::Block(Box::new(statements))))
+      },
       TokenType::Print => {
         *index += 1;
         
@@ -65,7 +93,7 @@ impl StmtParser {
           Ok(expression) => Ok(Some(Statement::Print(Box::new(expression)))),
           Err(e) => Err(e),
         }
-      }
+      },
       _ => {
         match StmtParser::expression(tokens, index) {
           Ok(expression) => Ok(Some(Statement::Expression(Box::new(expression)))),

@@ -1,7 +1,9 @@
+use std::cell::RefCell;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
+use std::rc::Rc;
 
 mod token; use environment::Environment;
 use expression::evaluator::ExprEvaluator;
@@ -22,7 +24,7 @@ fn main() {
     let command = &args[1];
     let filename = &args[2];
 
-    let mut env = Environment::new();
+    let mut env = Rc::new(RefCell::new(Environment::global()));
 
     match command.as_str() {
         "tokenize" => {
@@ -88,7 +90,7 @@ fn parse_expr<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
     };
 }
 
-fn evaluate_expr(filename: &String, env: &mut Environment) {
+fn evaluate_expr<'a>(filename: &String, env: &Rc<RefCell<Environment>>) {
     let tokens = tokenize(filename,  false);
     let expression = parse_expr(&tokens,  false);
 
@@ -123,16 +125,13 @@ fn parse_stmt<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>> {
     };
 }
 
-fn run(filename: &String, env: &mut Environment) {
+fn run<'a>(filename: &String, env: &Rc<RefCell<Environment>>) {
     let tokens = tokenize(filename, false);
     let statements = parse_stmt(&tokens, false);
 
-    for statement in &statements {
-        match StmtEvaluator::evaluate(statement, env) {
-            Ok(r) => match r {
-                Some(v) => println!("{}", v.to_string()),
-                None => {}
-            },
+    for statement in statements {
+        match StmtEvaluator::evaluate(&statement, env) {
+            Ok(_r) => {},
             Err(e) => {
                 eprintln!("{}", e.to_string());
                 process::exit(70);

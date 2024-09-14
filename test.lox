@@ -1,5 +1,8 @@
-var bar = 61;
-var hello = 65;
-hello = bar;
-bar = hello;
-print bar + hello;
+{
+    var foo = "before";
+    print foo;
+}
+{
+    var foo = "after";
+    print foo;
+}
