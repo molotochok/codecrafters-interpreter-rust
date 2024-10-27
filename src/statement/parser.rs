@@ -14,10 +14,7 @@ impl StmtParser {
 
     while *index < tokens.len() {
       match StmtParser::declaration(tokens, index) {
-        Ok(option) => match option {
-          Some(d) => declarations.push(d),
-          None => break
-        },
+        Ok(d) => declarations.push(d),
         Err(e) => return Err(e)
       }
     }
@@ -25,21 +22,21 @@ impl StmtParser {
     Ok(declarations)
   }
 
-  fn declaration<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Option<Statement<'a>>, ParserError> {
+  fn declaration<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Statement<'a>, ParserError> {
     match tokens[*index].token_type {
       TokenType::Var => StmtParser::var_declaration(tokens, index),
       _ => StmtParser::statement(tokens, index)
     }
   }
 
-  fn var_declaration<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Option<Statement<'a>>, ParserError> {
+  fn var_declaration<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Statement<'a>, ParserError> {
     *index += 1;
 
     match ParserUtils::match_advance(tokens, index, &[TokenType::Identifier]) {
       Some(identifier) => match ParserUtils::match_advance(tokens, index, &[TokenType::Equal]) {
         Some(_equal) => {
-          let value = StmtParser::expression(tokens, index);
-          Ok(Some(Statement::Var(identifier, Box::new(value.unwrap()))))
+          let value = StmtParser::expression(tokens, index, true);
+          Ok(Statement::Var(identifier, Box::new(value.unwrap())))
         },
         None => {
           if &tokens[*index].token_type != &TokenType::Semicolon {
@@ -48,16 +45,19 @@ impl StmtParser {
 
           *index += 1;
 
-          Ok(Some(Statement::Var(identifier, Box::new(Expression::Nil()))))
+          Ok(Statement::Var(identifier, Box::new(Expression::Nil())))
         },
       },
       None => Err(ParserError::ExpectExpression())
     }
   }
 
-  fn statement<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Option<Statement<'a>>, ParserError> {
+  fn statement<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Statement<'a>, ParserError> {
     match tokens[*index].token_type {
-      TokenType::EOL | TokenType::EOF => Ok(None),
+      TokenType::EOL | TokenType::EOF => {
+        *index += 1;
+        Ok(Statement::Empty())
+      },
       TokenType::LeftBrace => {
         *index += 1;
 
@@ -76,45 +76,63 @@ impl StmtParser {
           }
 
           match StmtParser::declaration(tokens, index) {
-            Ok(declaration) => match declaration {
-              Some(statement) => statements.push(statement),
-              None => {}
-            },
+            Ok(statement) => statements.push(statement),
             Err(e) => { return Err(e); }
           };
         };
 
-        Ok(Some(Statement::Block(Box::new(statements))))
+        Ok(Statement::Block(Box::new(statements)))
       },
       TokenType::Print => {
         *index += 1;
         
-        match StmtParser::expression(tokens, index) {
-          Ok(expression) => Ok(Some(Statement::Print(Box::new(expression)))),
+        match StmtParser::expression(tokens, index, true) {
+          Ok(expression) => Ok(Statement::Print(Box::new(expression))),
           Err(e) => Err(e),
         }
       },
+      TokenType::If => {
+        *index += 1;
+        
+        if !ParserUtils::matches(&tokens[*index], &[TokenType::LeftParen]) {
+          return Err(ParserError::MissingToken(TokenType::LeftParen));
+        }
+
+        match StmtParser::expression(tokens, index, false) {
+          Ok(condition) => {
+            match StmtParser::statement(tokens, index) {
+              Ok(then_stmt) => {
+                Ok(Statement::If(Box::new(condition), Box::new(then_stmt), Box::new(Statement::Empty())))
+              },
+              Err(e) => Err(e)
+            }
+          }, 
+          Err(e) => Err(e)
+        }
+      },
       _ => {
-        match StmtParser::expression(tokens, index) {
-          Ok(expression) => Ok(Some(Statement::Expression(Box::new(expression)))),
+        match StmtParser::expression(tokens, index, true) {
+          Ok(expression) => Ok(Statement::Expression(Box::new(expression))),
           Err(e) => Err(e),
         }
       }
     }
   }
 
-  fn expression<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn expression<'a>(tokens: &'a Vec<Token>, index: &mut usize, check_ending: bool) -> Result<Expression<'a>, ParserError> {
     let expression = ExprParser::expression(tokens, index);
           
     if expression.is_err() {
       return Err(expression.err().unwrap());
     }
 
-    if &tokens[*index].token_type != &TokenType::Semicolon {
-      return Err(ParserError::MissingToken(TokenType::Semicolon))
-    }
+    if check_ending {
+      if &tokens[*index].token_type != &TokenType::Semicolon {
+        return Err(ParserError::MissingToken(TokenType::Semicolon));
+      }
+      *index += 1;
+    } 
 
-    *index += 1;
     return expression;
   }
 }

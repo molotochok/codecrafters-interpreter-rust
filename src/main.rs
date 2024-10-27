@@ -107,7 +107,6 @@ fn evaluate_expr<'a>(filename: &String, env: &Rc<RefCell<Environment>>) {
 
 fn parse_stmt<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>> {
     let result = Parser::parse_statements(tokens);
-
     match result {
         Ok(statements) => {
             if print {

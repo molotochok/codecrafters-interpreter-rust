@@ -19,6 +19,7 @@ pub struct StmtEvaluator;
 impl StmtEvaluator {
   pub fn evaluate<'a>(statement: &'a Statement, env: &Rc<RefCell<Environment>>) -> Result<(), StmtEvalError> {
     match statement {
+      Statement::Empty() => Ok(()),
       Statement::Print(e) => {
         match ExprEvaluator::evaluate(e, env) {
           Ok(t) => {
@@ -55,6 +56,14 @@ impl StmtEvaluator {
         }
 
         Ok(())
+      },
+      Statement::If(expr, then_stmt, else_stmt) => {
+        match ExprEvaluator::evaluate(expr, &env) {
+          Ok(condition) => {
+            StmtEvaluator::evaluate(if condition.is_truthy() { &then_stmt } else { &else_stmt }, &env)
+          },
+          Err(e) => Err(StmtEvalError::ExpressionError(e))
+        }
       }
     }
   }
