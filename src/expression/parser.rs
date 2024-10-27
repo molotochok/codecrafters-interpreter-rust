@@ -16,7 +16,7 @@ impl ExprParser {
   }
 
   pub fn assignment<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
-    match ExprParser::equality(tokens, index) {
+    match ExprParser::or(tokens, index) {
       Ok(expr) => {
         match ParserUtils::match_advance(tokens, index, &[TokenType::Equal]) {
           Some(_equal) => {
@@ -33,6 +33,52 @@ impl ExprParser {
       },
       Err(e) => Err(e)
     }
+  }
+
+  fn or<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+    let left = ExprParser::and(tokens, index);
+    
+    if left.is_err() {
+      return left;
+    }
+
+    let mut expression = left.unwrap();
+    loop {
+      match ParserUtils::match_advance(tokens, index, &[TokenType::Or]) {
+        Some(and) => match ExprParser::and(tokens, index) {
+          Ok(right) => {
+            expression = Expression::Logical(Box::new(expression), and, Box::new(right));
+          },
+          Err(e) => return Err(e)
+        },
+        None => break
+      }
+    }
+
+    Ok(expression)
+  }
+
+  fn and<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+    let left = ExprParser::equality(tokens, index);
+    
+    if left.is_err() {
+      return left;
+    }
+
+    let mut expression = left.unwrap();
+    loop {
+      match ParserUtils::match_advance(tokens, index, &[TokenType::And]) {
+        Some(and) => match ExprParser::equality(tokens, index) {
+          Ok(right) => {
+            expression = Expression::Logical(Box::new(expression), and, Box::new(right));
+          },
+          Err(e) => return Err(e)
+        },
+        None => break
+      }
+    }
+
+    Ok(expression)
   }
 
   fn equality<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {

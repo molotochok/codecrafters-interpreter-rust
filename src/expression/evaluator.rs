@@ -117,6 +117,23 @@ impl ExprEvaluator {
           }, 
           Err(e) => Err(e)
         }
+      },
+      Expression::Logical(left, operator, right) => {
+        match ExprEvaluator::evaluate(left, env) {
+          Ok(l) => {
+            if operator.token_type == TokenType::Or {
+              if l.is_truthy() { return Ok(l); }
+            } else {
+              if !l.is_truthy() { return Ok(l); }
+            }
+
+            match ExprEvaluator::evaluate(right, env) {
+              Ok(r) => Ok(r),
+              Err(e) => Err(e)
+            }
+          },
+          Err(e) => Err(e)
+        }
       }
     }
   }

@@ -1,17 +1,8 @@
-var celsius = 67;
-var fahrenheit = 0;
-var isHot = false;
+if (false or "ok") print "baz";
+if (nil or "ok") print "baz";
 
-{
-  fahrenheit = celsius * 9 / 5 + 32;
-  print celsius; print fahrenheit;
+if (false or false) print "world";
+if (true or "world") print "world";
 
-  if (celsius > 30) {
-    isHot = true;
-    print "It's a hot day. Stay hydrated!";
-  } else {
-    print "It's cold today. Wear a jacket!";
-  }
-
-  if (isHot) { print "Remember to use sunscreen!"; }
-}
+if (24 or "bar") print "bar";
+if ("bar" or "bar") print "bar";

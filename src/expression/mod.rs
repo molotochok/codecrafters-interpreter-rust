@@ -13,6 +13,7 @@ pub enum Expression<'a> {
   Grouping(Box<Expression<'a>>),
   Variable(&'a Token),
   Assign(&'a Token, Box<Expression<'a>>),
+  Logical(Box<Expression<'a>>, &'a Token, Box<Expression<'a>>),
   Nil()
 }
 
@@ -30,6 +31,7 @@ impl<'a> Expression<'a> {
       Expression::Grouping(expr) => Expression::parenthesize(&Cow::Borrowed("group"), &[expr]),
       Expression::Variable(token) => token.lexeme.to_string(),
       Expression::Assign(token, expression) => format!("{} = {}", token.lexeme, expression.to_string()),
+      Expression::Logical(left, operator, right) => format!("{} {} {}", left.to_string(), operator.to_str(), right.to_string()),
       Expression::Nil() => format!("nil")
     }
   }
