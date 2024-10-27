@@ -102,7 +102,18 @@ impl StmtParser {
           Ok(condition) => {
             match StmtParser::statement(tokens, index) {
               Ok(then_stmt) => {
-                Ok(Statement::If(Box::new(condition), Box::new(then_stmt), Box::new(Statement::Empty())))
+                let mut else_stmt = Statement::Empty();
+                
+                match ParserUtils::match_advance(tokens, index, &[TokenType::Else]) {
+                  Some(_else) => {
+                    match StmtParser::statement(tokens, index) {
+                      Ok(statement) => else_stmt = statement,
+                      Err(e) => return Err(e)
+                    }
+                  },
+                  None => {}
+                }
+                Ok(Statement::If(Box::new(condition), Box::new(then_stmt), Box::new(else_stmt)))
               },
               Err(e) => Err(e)
             }
