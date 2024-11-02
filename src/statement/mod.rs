@@ -9,7 +9,8 @@ pub enum Statement<'a> {
   Expression(Box<Expression<'a>>),
   Var(&'a Token, Box<Expression<'a>>),
   Block(Box<Vec<Statement<'a>>>),
-  If(Box<Expression<'a>>, Box<Statement<'a>>, Box<Statement<'a>>)
+  If(Box<Expression<'a>>, Box<Statement<'a>>, Box<Statement<'a>>),
+  While(Box<Expression<'a>>, Box<Statement<'a>>)
 }
 
 impl<'a> Statement<'a> {
@@ -36,6 +37,9 @@ impl<'a> Statement<'a> {
       Statement::If(expr, then_stmt, else_stmt) => {
         format!("If:\n  Condition: {};\n  Then: {};\n  Else: {};", expr.to_string(), then_stmt.to_string(), else_stmt.to_string())
       },
+      Statement::While(expr, stmt) => {
+        format!("While:\n Condition: {};\n Statement: {}", expr.to_string(), stmt.to_string())
+      }
     }
   }
 }

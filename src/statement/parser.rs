@@ -121,6 +121,23 @@ impl StmtParser {
           Err(e) => Err(e)
         }
       },
+      TokenType::While => {
+        *index += 1;
+        
+        if !ParserUtils::matches(&tokens[*index], &[TokenType::LeftParen]) {
+          return Err(ParserError::MissingToken(TokenType::LeftParen));
+        }
+
+        match StmtParser::expression(tokens, index, false) {
+          Ok(condition) => {
+            match StmtParser::statement(tokens, index) {
+              Ok(then_stmt) => Ok(Statement::While(Box::new(condition), Box::new(then_stmt))),
+              Err(e) => Err(e)
+            }
+          }, 
+          Err(e) => Err(e)
+        }
+      },
       _ => {
         match StmtParser::expression(tokens, index, true) {
           Ok(expression) => Ok(Statement::Expression(Box::new(expression))),
