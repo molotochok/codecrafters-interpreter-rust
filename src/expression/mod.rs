@@ -14,7 +14,7 @@ pub enum Expression<'a> {
   Variable(&'a Token),
   Assign(&'a Token, Box<Expression<'a>>),
   Logical(Box<Expression<'a>>, &'a Token, Box<Expression<'a>>),
-  Nil()
+  Nil(),
 }
 
 impl<'a> Expression<'a> {
