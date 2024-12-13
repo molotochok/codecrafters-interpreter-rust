@@ -23,10 +23,10 @@ impl ExprEvaluator {
           Err(e) => Err(e)
         }
       },
-      Expression::Variable(token) => {
+      Expression::Identifier(token) => {
         match env.borrow().get(&token.lexeme.to_string()) {
           Some(v) => Ok(v.into_inner()),
-          None => Err(ExprEvalError::UndefinedVariable(token.lexeme.to_string()))
+          None => Err(ExprEvalError::UndefinedIdentifier(token.lexeme.to_string()))
         }
       },
       Expression::Literal(token) => {
@@ -130,6 +130,25 @@ impl ExprEvaluator {
             match ExprEvaluator::evaluate(right, env) {
               Ok(r) => Ok(r),
               Err(e) => Err(e)
+            }
+          },
+          Err(e) => Err(e)
+        }
+      },
+      Expression::Call(callee, arguments) => {
+        match ExprEvaluator::evaluate(callee, env) {
+          Ok(eval_callee) => {
+            let mut eval_args: Vec<ExprType> = Vec::new();
+            for arg in arguments {
+              match ExprEvaluator::evaluate(arg, env) {
+                Ok(v) => eval_args.push(v),
+                Err(e) => return Err(e)
+              }
+            }
+
+            match eval_callee {
+              ExprType::Function(function) => Ok(function.call(eval_args)),
+              _ => Err(ExprEvalError::UndefinedIdentifier(callee.to_string()))
             }
           },
           Err(e) => Err(e)

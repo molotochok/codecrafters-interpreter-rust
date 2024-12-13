@@ -66,20 +66,21 @@ impl StmtEvaluator {
         }
       },
       Statement::While(expr, stmt) => {
-        match ExprEvaluator::evaluate(&expr, &env) {
-          Ok(condition) => {
-            if condition.is_truthy() {
-              let res = StmtEvaluator::evaluate(&stmt, &env);
-
-              if res.is_err() {
-                return res;
+        loop {
+          match ExprEvaluator::evaluate(&expr, &env) {
+            Ok(condition) => {
+              if condition.is_truthy() {
+                let res = StmtEvaluator::evaluate(&stmt, &env);
+  
+                if res.is_err() {
+                  return res;
+                }
+              } else {
+                return Ok(());
               }
-              StmtEvaluator::evaluate(&statement, &env)
-            } else {
-              Ok(())
-            }
-          },
-          Err(e) => Err(StmtEvalError::ExpressionError(e))
+            },
+            Err(e) => { return Err(StmtEvalError::ExpressionError(e)); }
+          } 
         }
       }
     }

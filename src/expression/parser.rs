@@ -5,7 +5,6 @@ use crate::expression::Expression;
 
 pub struct ExprParser;
 
-
 impl ExprParser {
   pub fn parse<'a>(tokens: &'a Vec<Token>) -> Result<Expression<'a>, ParserError> {
     ExprParser::expression(tokens, &mut 0)
@@ -22,7 +21,7 @@ impl ExprParser {
           Some(_equal) => {
             match ExprParser::assignment(tokens, index) {
               Ok(value) => match expr {
-                Expression::Variable(token) => return Ok(Expression::Assign(token, Box::new(value))),
+                Expression::Identifier(token) => return Ok(Expression::Assign(token, Box::new(value))),
                 _ => Err(ParserError::InvalidAssignment(expr.to_string())),
               },
               Err(_e) => Err(ParserError::InvalidAssignment(expr.to_string()))
@@ -196,8 +195,58 @@ impl ExprParser {
 
         Ok(Expression::Unary(token, Box::new(right.unwrap())))
       },
-      None => ExprParser::primary(tokens, index)
+      None => ExprParser::call(tokens, index)
     }
+  }
+
+  fn call<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+    match ExprParser::primary(tokens, index) {
+      Ok(callee) => {
+        // TODO: This should be in a loop and I should cover closing paren
+        match ParserUtils::match_advance(tokens, index, &[TokenType::LeftParen]) {
+          Some(_lp) => {
+            match ExprParser::arguments(tokens, index) {
+              Ok(arguments) => {
+                match ParserUtils::match_advance(tokens, index, &[TokenType::RightParen]) {
+                  Some(_rp) => Ok(Expression::Call(Box::new(callee), arguments)),
+                  None => Err(ParserError::MissingToken(TokenType::RightParen))
+                }
+              },
+              Err(e) => Err(e)
+            }
+          },
+          None => Ok(callee)
+        }
+      },
+      Err(e) => Err(e)
+    }
+  }
+
+  fn arguments<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Vec<Expression<'a>>, ParserError> {
+    let mut arguments: Vec<Expression<'a>> = Vec::new();
+
+    if ParserUtils::matches(&tokens[*index], &[TokenType::RightParen]) {
+      return Ok(arguments);
+    }
+
+    match ExprParser::expression(tokens, index) {
+      Ok(arg) => arguments.push(arg),
+      Err(e) => return Err(e)
+    };
+
+    loop {
+      match ParserUtils::match_advance(tokens, index, &[TokenType::Comma]) {
+        Some(_c) => {
+          match ExprParser::expression(tokens, index) {
+            Ok(arg) => arguments.push(arg),
+            Err(e) => return Err(e)
+          }
+        },
+        None => break
+      }
+    }
+
+    Ok(arguments)
   }
 
   fn primary<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
@@ -207,7 +256,7 @@ impl ExprParser {
     };
 
     match ParserUtils::match_advance(tokens, index, &[TokenType::Identifier]) {
-      Some(token) => return Ok(Expression::Variable(token)),
+      Some(token) => return Ok(Expression::Identifier(token)),
       None => {}
     };
 

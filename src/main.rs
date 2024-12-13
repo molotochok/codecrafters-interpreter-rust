@@ -4,9 +4,13 @@ use std::fs;
 use std::io::{self, Write};
 use std::process;
 use std::rc::Rc;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 mod token; use environment::Environment;
 use expression::evaluator::ExprEvaluator;
+use expression::expr_type::CallableFunction;
+use expression::expr_type::ExprType;
 use statement::evaluator::StmtEvaluator;
 use token::Token;
 mod parser; use parser::Parser;
@@ -25,6 +29,7 @@ fn main() {
     let filename = &args[2];
 
     let mut env = Rc::new(RefCell::new(Environment::global()));
+    define_native_funcs(&env);
 
     match command.as_str() {
         "tokenize" => {
@@ -45,6 +50,12 @@ fn main() {
             return;
         }
     }
+}
+
+fn define_native_funcs(env: &Rc<RefCell<Environment>>) {
+    env.borrow_mut().define(String::from("clock"), ExprType::Function(Rc::new(CallableFunction::new(|_args| {
+        return ExprType::Number(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs_f64().floor());
+    }))));
 }
 
 fn tokenize(filename: &String, print_tokens: bool) -> Vec<Token> {

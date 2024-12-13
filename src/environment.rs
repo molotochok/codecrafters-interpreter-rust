@@ -29,7 +29,7 @@ impl Environment {
 
     match &self.enclosing {
       Some(enclosing) => enclosing.borrow_mut().assign(key, value),
-      None => Err(ExprEvalError::UndefinedVariable(key))
+      None => Err(ExprEvalError::UndefinedIdentifier(key))
     }
   }
 

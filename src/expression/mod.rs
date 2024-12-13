@@ -11,9 +11,10 @@ pub enum Expression<'a> {
   Unary(&'a Token, Box<Expression<'a>>),
   Binary(Box<Expression<'a>>, &'a Token, Box<Expression<'a>>),
   Grouping(Box<Expression<'a>>),
-  Variable(&'a Token),
+  Identifier(&'a Token),
   Assign(&'a Token, Box<Expression<'a>>),
   Logical(Box<Expression<'a>>, &'a Token, Box<Expression<'a>>),
+  Call(Box<Expression<'a>>, Vec<Expression<'a>>),
   Nil(),
 }
 
@@ -29,9 +30,10 @@ impl<'a> Expression<'a> {
       Expression::Unary(token, right) => Expression::parenthesize(&token.lexeme, &[right]),
       Expression::Binary(left, token, right) => Expression::parenthesize(&token.lexeme, &[left, right]),
       Expression::Grouping(expr) => Expression::parenthesize(&Cow::Borrowed("group"), &[expr]),
-      Expression::Variable(token) => token.lexeme.to_string(),
+      Expression::Identifier(token) => token.lexeme.to_string(),
       Expression::Assign(token, expression) => format!("{} = {}", token.lexeme, expression.to_string()),
       Expression::Logical(left, operator, right) => format!("{} {} {}", left.to_string(), operator.to_str(), right.to_string()),
+      Expression::Call(calle, arguments) => format!("{}{}", calle.to_string(), arguments.iter().map(|x| x.to_string()).collect::<Vec<String>>().join(", ")),
       Expression::Nil() => format!("nil")
     }
   }
