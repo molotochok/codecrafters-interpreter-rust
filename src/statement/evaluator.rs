@@ -1,48 +1,44 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{environment::Environment, expression::{evaluator::ExprEvaluator, expr_eval_error::ExprEvalError}};
-use super::Statement;
+use crate::{environment::Environment, expression::evaluator::ExprEvaluator, runtime::{runtime_error::RuntimeError, runtime_function::RuntimeFunction, runtime_type::RuntimeType}};
 
-pub enum StmtEvalError {
-  ExpressionError(ExprEvalError)
-}
-impl StmtEvalError {
-  pub fn to_string(&self) -> String {
-    match self {
-      StmtEvalError::ExpressionError(e) => format!("Statement failure: {}", e.to_string()),
-    }
-  }
-}
+use super::Statement;
 
 pub struct StmtEvaluator;
 
 impl StmtEvaluator {
-  pub fn evaluate<'a>(statement: &'a Statement, env: &Rc<RefCell<Environment>>) -> Result<(), StmtEvalError> {
+  pub fn evaluate(statement: &Statement, env: &Rc<RefCell<Environment>>) -> Result<RuntimeType, RuntimeError> {
     match statement {
-      Statement::Empty() => Ok(()),
+      Statement::Empty() => Ok(RuntimeType::Nil()),
       Statement::Print(e) => {
         match ExprEvaluator::evaluate(e, env) {
           Ok(t) => {
             println!("{}", t.to_string());
-            Ok(())
+            Ok(RuntimeType::Nil())
           },
-          Err(e) => Err(StmtEvalError::ExpressionError(e))
+          Err(e) => Err(RuntimeError::StatementError(e.to_string()))
         }
       },
       Statement::Expression(e) => {
         match ExprEvaluator::evaluate(e, env) {
-          Ok(_r) => Ok(()),
-          Err(e) => Err(StmtEvalError::ExpressionError(e))
+          Ok(_r) => Ok(RuntimeType::Nil()),
+          Err(e) => Err(RuntimeError::StatementError(e.to_string()))
         }
       },
       Statement::Var(token, e) => {
         match ExprEvaluator::evaluate(e, env) {
           Ok(t) => {
-            env.borrow_mut().define(token.lexeme.to_string(), t);
-            return Ok(());
+            env.borrow_mut().define(token.lexeme.to_string(), Rc::new(t));
+            return Ok(RuntimeType::Nil());
           },
-          Err(e) => Err(StmtEvalError::ExpressionError(e))
+          Err(e) => Err(RuntimeError::StatementError(e.to_string()))
         }
+      },
+      Statement::Function(func_name, args_names, body) => {
+        let fun = RuntimeFunction::new(func_name.lexeme.to_string(), args_names.clone(), body.clone(), env.clone());
+        let fun_type = RuntimeType::Function(Rc::new(fun));
+        env.borrow_mut().define(func_name.lexeme.to_string(), Rc::new(fun_type));
+        return Ok(RuntimeType::Nil());
       },
       Statement::Block(statements) => {
         let local_env = Rc::new(RefCell::new(Environment::local(env.clone())));
@@ -55,14 +51,14 @@ impl StmtEvaluator {
           }
         }
 
-        Ok(())
+        return Ok(RuntimeType::Nil());
       },
       Statement::If(expr, then_stmt, else_stmt) => {
         match ExprEvaluator::evaluate(expr, &env) {
           Ok(condition) => {
             StmtEvaluator::evaluate(if condition.is_truthy() { &then_stmt } else { &else_stmt }, &env)
           },
-          Err(e) => Err(StmtEvalError::ExpressionError(e))
+          Err(e) => Err(RuntimeError::StatementError(e.to_string()))
         }
       },
       Statement::While(expr, stmt) => {
@@ -76,12 +72,15 @@ impl StmtEvaluator {
                   return res;
                 }
               } else {
-                return Ok(());
+                return Ok(RuntimeType::Nil());
               }
             },
-            Err(e) => { return Err(StmtEvalError::ExpressionError(e)); }
+            Err(e) => { return Err(RuntimeError::StatementError(e.to_string())); }
           } 
         }
+      },
+      Statement::Native(fun) => {
+        return fun();
       }
     }
   }

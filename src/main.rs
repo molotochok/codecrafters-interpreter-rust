@@ -7,16 +7,14 @@ use std::rc::Rc;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
-mod token; use environment::Environment;
-use expression::evaluator::ExprEvaluator;
-use expression::expr_type::CallableFunction;
-use expression::expr_type::ExprType;
-use statement::evaluator::StmtEvaluator;
+mod token; use runtime::runtime_function::RuntimeFunction;
+use runtime::runtime_type::RuntimeType;
 use token::Token;
 mod parser; use parser::Parser;
-mod statement; use statement::Statement;
-mod expression; use expression::Expression;
-mod environment;
+mod statement; use statement::Statement; use statement::evaluator::StmtEvaluator;
+mod expression; use expression::Expression; use expression::evaluator::ExprEvaluator;
+mod environment; use environment::Environment;
+mod runtime;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -53,12 +51,21 @@ fn main() {
 }
 
 fn define_native_funcs(env: &Rc<RefCell<Environment>>) {
-    env.borrow_mut().define(String::from("clock"), ExprType::Function(Rc::new(CallableFunction::new(|_args| {
-        return ExprType::Number(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs_f64().floor());
-    }))));
+    let fun = RuntimeFunction::new(
+        String::from("clock"), 
+        vec![], 
+        Box::new(Statement::Native(Rc::new(|| {
+            return Ok(RuntimeType::Number(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs_f64().floor()));
+        }))), 
+        env.clone()
+    );
+
+    let fun_type = RuntimeType::Function(Rc::new(fun));
+
+    env.borrow_mut().define(String::from("clock"), Rc::new(fun_type));
 }
 
-fn tokenize(filename: &String, print_tokens: bool) -> Vec<Token> {
+fn tokenize(filename: &String, print_tokens: bool) -> Vec<Rc<Token>> {
     let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
         writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
         String::new()
@@ -83,7 +90,7 @@ fn tokenize(filename: &String, print_tokens: bool) -> Vec<Token> {
     tokens
 }
 
-fn parse_expr<'a>(tokens: &'a Vec<Token>, print_expr: bool) -> Expression<'a> {
+fn parse_expr(tokens: &Vec<Rc<Token>>, print_expr: bool) -> Expression {
     let expression = Parser::parse_expression(tokens);
 
     match expression {
@@ -116,7 +123,7 @@ fn evaluate_expr<'a>(filename: &String, env: &Rc<RefCell<Environment>>) {
     }
 }
 
-fn parse_stmt<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>> {
+fn parse_stmt(tokens: &Vec<Rc<Token>>, print: bool) -> Vec<Statement> {
     let result = Parser::parse_statements(tokens);
     match result {
         Ok(statements) => {
@@ -135,7 +142,7 @@ fn parse_stmt<'a>(tokens: &'a Vec<Token>, print: bool) -> Vec<Statement<'a>> {
     };
 }
 
-fn run<'a>(filename: &String, env: &Rc<RefCell<Environment>>) {
+fn run(filename: &String, env: &Rc<RefCell<Environment>>) {
     let tokens = tokenize(filename, false);
     let statements = parse_stmt(&tokens, false);
 

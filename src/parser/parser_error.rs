@@ -4,7 +4,7 @@ use crate::token::TokenType;
 pub enum ParserError {
   MissingToken(TokenType),
   UnmatchedParentheses(),
-  ExpectExpression(),
+  ExpectExpression(String),
   InvalidAssignment(String)
 }
 
@@ -13,7 +13,7 @@ impl ParserError {
     match self {
       ParserError::MissingToken(t) => format!("Missing Token: {}.", t.to_string()),
       ParserError::UnmatchedParentheses() => format!("Error: Unmatched parentheses"),
-      ParserError::ExpectExpression() => format!("Expect expression"),
+      ParserError::ExpectExpression(msg) => format!("Expect expression. {}", msg),
       ParserError::InvalidAssignment(expr) => format!("{}", expr)
     }
   }

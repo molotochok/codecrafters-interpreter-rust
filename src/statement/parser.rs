@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::expression::Expression;
 use crate::expression::parser::ExprParser;
 use crate::parser::parser_error::ParserError;
@@ -8,7 +10,7 @@ use crate::statement::Statement;
 pub struct StmtParser;
 
 impl StmtParser {
-  pub fn parse<'a>(tokens: &'a Vec<Token>) -> Result<Vec<Statement<'a>>, ParserError> {
+  pub fn parse(tokens: &Vec<Rc<Token>>) -> Result<Vec<Statement>, ParserError> {
     let mut declarations: Vec<Statement> = Vec::new();
     let index = &mut 0;
 
@@ -22,14 +24,65 @@ impl StmtParser {
     Ok(declarations)
   }
 
-  fn declaration<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Statement<'a>, ParserError> {
+  fn declaration(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Statement, ParserError> {
     match tokens[*index].token_type {
+      TokenType::Fun => StmtParser::fun_declaration(tokens, index),
       TokenType::Var => StmtParser::var_declaration(tokens, index),
       _ => StmtParser::statement(tokens, index)
     }
   }
 
-  fn var_declaration<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Statement<'a>, ParserError> {
+  fn fun_declaration(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Statement, ParserError> {
+    *index += 1;
+
+    match ParserUtils::match_advance(tokens, index, &[TokenType::Identifier]) {
+      Some(func_name) => {
+        match StmtParser::fun_args(tokens, index) {
+          Ok(args) => match StmtParser::statement(tokens, index) {
+            Ok(body) => return Ok(Statement::Function(func_name, args, Box::new(body))),
+            Err(e) => return Err(e)
+          },
+          Err(e) => return Err(e)
+        }
+      },
+      None => Err(ParserError::ExpectExpression(String::from("Expected Identifier for function name.")))
+    }
+  }
+
+  fn fun_args(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Vec<Rc<Token>>, ParserError> {
+    let mut args: Vec<Rc<Token>> = Vec::new();
+
+    match ParserUtils::match_advance(tokens, index, &[TokenType::LeftParen]) {
+      Some(_lp) => {
+        if ParserUtils::matches(&tokens[*index], &[TokenType::RightParen]) {
+          *index += 1;
+          return Ok(args);
+        }
+
+        loop {
+          match ParserUtils::match_advance(tokens, index, &[TokenType::Identifier]) {
+            Some(arg) => {
+              args.push(arg);
+              if ParserUtils::match_advance(tokens, index, &[TokenType::Comma]).is_none() {
+                break;
+              }
+            },
+            None => return Err(ParserError::MissingToken(TokenType::Identifier))
+          }
+        }
+      },
+      None => return Err(ParserError::MissingToken(TokenType::LeftParen))
+    }
+
+    match ParserUtils::match_advance(tokens, index, &[TokenType::RightParen]) {
+      Some(_rp) => {
+        return Ok(args);
+      },
+      None => return Err(ParserError::MissingToken(TokenType::RightParen))
+    }
+  }
+
+  fn var_declaration(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Statement, ParserError> {
     *index += 1;
 
     match ParserUtils::match_advance(tokens, index, &[TokenType::Identifier]) {
@@ -48,11 +101,11 @@ impl StmtParser {
           Ok(Statement::Var(identifier, Box::new(Expression::Nil())))
         },
       },
-      None => Err(ParserError::ExpectExpression())
+      None => Err(ParserError::ExpectExpression(String::from("Expected Indentifier for a variable.")))
     }
   }
 
-  fn statement<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Statement<'a>, ParserError> {
+  fn statement(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Statement, ParserError> {
     match tokens[*index].token_type {
       TokenType::EOL | TokenType::EOF => {
         *index += 1;
@@ -61,7 +114,7 @@ impl StmtParser {
       TokenType::LeftBrace => {
         *index += 1;
 
-        let mut statements: Vec<Statement<'a>> = Vec::new();
+        let mut statements: Vec<Statement> = Vec::new();
 
         loop {
           let token = &tokens[*index];
@@ -188,7 +241,7 @@ impl StmtParser {
     }
   }
 
-  fn expression<'a>(tokens: &'a Vec<Token>, index: &mut usize, ending_opt: &Option<TokenType>, optional: bool) -> Result<Expression<'a>, ParserError> {
+  fn expression(tokens: &Vec<Rc<Token>>, index: &mut usize, ending_opt: &Option<TokenType>, optional: bool) -> Result<Expression, ParserError> {
     if optional {
       match ending_opt {
         Some(ending) => {

@@ -1,6 +1,6 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, rc::Rc};
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub name: &'static str,
@@ -14,7 +14,7 @@ pub enum TokenizeError {
     UndeterminedString(String)
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
     // *** Single Character ***
     LeftParen, RightParen, LeftBrace, RightBrace, Comma, Dot, Plus, Star, Minus, Semicolon, Space, Tab,
@@ -217,8 +217,8 @@ impl Token {
         format!("{} {} {}", self.name, self.lexeme, self.literal)
     }
 
-    pub fn tokenize(str: &String) -> (Vec<Token>, Vec<String>) {
-        let mut tokens: Vec<Token> = Vec::new();
+    pub fn tokenize(str: &String) -> (Vec<Rc<Token>>, Vec<String>) {
+        let mut tokens: Vec<Rc<Token>> = Vec::new();
         let mut errors: Vec<String> = Vec::new();
 
         let mut line = 1;
@@ -247,7 +247,7 @@ impl Token {
                         },
                         _ => {
                             i += if token.lexeme.len() > 0 { token.lexeme.len() } else { 1 };
-                            tokens.push(token);
+                            tokens.push(Rc::new(token));
                         }
                     }
                 },
@@ -271,7 +271,7 @@ impl Token {
             };
         }
     
-        tokens.push(Token::t_eof(line));
+        tokens.push(Rc::new(Token::t_eof(line)));
     
         (tokens, errors)
     }

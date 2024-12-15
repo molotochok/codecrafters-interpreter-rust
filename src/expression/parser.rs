@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::parser::parser_error::ParserError;
 use crate::parser::parser_utils::ParserUtils;
 use crate::token::{Token, TokenType};
@@ -6,15 +8,15 @@ use crate::expression::Expression;
 pub struct ExprParser;
 
 impl ExprParser {
-  pub fn parse<'a>(tokens: &'a Vec<Token>) -> Result<Expression<'a>, ParserError> {
+  pub fn parse(tokens: &Vec<Rc<Token>>) -> Result<Expression, ParserError> {
     ExprParser::expression(tokens, &mut 0)
   }
 
-  pub fn expression<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  pub fn expression(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     ExprParser::assignment(tokens, index)
   }
 
-  pub fn assignment<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  pub fn assignment(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     match ExprParser::or(tokens, index) {
       Ok(expr) => {
         match ParserUtils::match_advance(tokens, index, &[TokenType::Equal]) {
@@ -34,7 +36,7 @@ impl ExprParser {
     }
   }
 
-  fn or<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn or(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     let left = ExprParser::and(tokens, index);
     
     if left.is_err() {
@@ -57,7 +59,7 @@ impl ExprParser {
     Ok(expression)
   }
 
-  fn and<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn and(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     let left = ExprParser::equality(tokens, index);
     
     if left.is_err() {
@@ -80,7 +82,7 @@ impl ExprParser {
     Ok(expression)
   }
 
-  fn equality<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn equality(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     let left = ExprParser::comparison(tokens, index);
 
     if left.is_err() {
@@ -106,7 +108,7 @@ impl ExprParser {
     Ok(expression)
   }
 
-  fn comparison<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn comparison(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     let left = ExprParser::term(tokens, index);
 
     if left.is_err() {
@@ -132,7 +134,7 @@ impl ExprParser {
     Ok(expression)
   }
 
-  fn term<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn term(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     let left = ExprParser::factor(tokens, index);
 
     if left.is_err() {
@@ -158,7 +160,7 @@ impl ExprParser {
     Ok(expression)
   }
 
-  fn factor<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn factor(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     let left = ExprParser::unary(tokens, index);
 
     if left.is_err() {
@@ -184,7 +186,7 @@ impl ExprParser {
     Ok(expression)
   }
 
-  fn unary<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn unary(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     match ParserUtils::match_advance(tokens, index, &[TokenType::Bang, TokenType::Minus]) {
       Some(token) => {
         let right = ExprParser::unary(tokens, index);
@@ -199,7 +201,7 @@ impl ExprParser {
     }
   }
 
-  fn call<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn call(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     match ExprParser::primary(tokens, index) {
       Ok(callee) => {
         // TODO: This should be in a loop and I should cover closing paren
@@ -222,8 +224,8 @@ impl ExprParser {
     }
   }
 
-  fn arguments<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Vec<Expression<'a>>, ParserError> {
-    let mut arguments: Vec<Expression<'a>> = Vec::new();
+  fn arguments(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Vec<Expression>, ParserError> {
+    let mut arguments: Vec<Expression> = Vec::new();
 
     if ParserUtils::matches(&tokens[*index], &[TokenType::RightParen]) {
       return Ok(arguments);
@@ -249,7 +251,7 @@ impl ExprParser {
     Ok(arguments)
   }
 
-  fn primary<'a>(tokens: &'a Vec<Token>, index: &mut usize) -> Result<Expression<'a>, ParserError> {
+  fn primary(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     match ParserUtils::match_advance(tokens, index, &[TokenType::False, TokenType::True, TokenType:: Nil, TokenType::Number, TokenType::String]) {
       Some(token) => return Ok(Expression::Literal(token)),
       None => {}
@@ -275,7 +277,7 @@ impl ExprParser {
           None => Err(ParserError::UnmatchedParentheses())
         }
       },
-      None => Err(ParserError::ExpectExpression())
+      None => Err(ParserError::ExpectExpression(String::from("Expected LeftParen, got nothing.")))
     }  
   }
 }

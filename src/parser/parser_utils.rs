@@ -1,9 +1,11 @@
+use std::rc::Rc;
+
 use crate::token::{Token, TokenType};
 
 pub struct ParserUtils;
 
 impl ParserUtils {
-  pub fn match_advance<'a>(tokens: &'a Vec<Token>, index: &mut usize, token_types: &[TokenType]) -> Option<&'a Token> {
+  pub fn match_advance(tokens: &Vec<Rc<Token>>, index: &mut usize, token_types: &[TokenType]) -> Option<Rc<Token>> {
     if index >= &mut tokens.len() { return None; }
     
     let token = &tokens[index.to_owned()];
@@ -11,7 +13,7 @@ impl ParserUtils {
     if ParserUtils::matches(token, &[TokenType::EOL, TokenType::EOF, TokenType::Semicolon]) { return None; }
     if ParserUtils::matches(token, token_types) {
       *index += 1;
-      return Some(token);
+      return Some(token.clone());
     }
 
     None

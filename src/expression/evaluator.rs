@@ -2,20 +2,20 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::environment::Environment;
+use crate::runtime::runtime_error::RuntimeError;
+use crate::runtime::runtime_type::RuntimeType;
 use crate::{expression::Expression, token::TokenType};
-use crate::expression::expr_type::ExprType;
-use crate::expression::expr_eval_error::ExprEvalError;
 
 pub struct ExprEvaluator;
 
 impl ExprEvaluator {
-  pub fn evaluate<'a>(expression: &'a Expression, env: &Rc<RefCell<Environment>>) -> Result<ExprType, ExprEvalError> {
+  pub fn evaluate(expression: &Expression, env: &Rc<RefCell<Environment>>) -> Result<RuntimeType, RuntimeError> {
     match expression {
-      Expression::Nil() => Ok(ExprType::Nil()),
+      Expression::Nil() => Ok(RuntimeType::Nil()),
       Expression::Assign(token, expression) => {
         match ExprEvaluator::evaluate(expression, env) {
           Ok(value) => {
-            match env.borrow_mut().assign(token.lexeme.to_string(), value.clone()) {
+            match env.borrow_mut().assign(token.lexeme.to_string(), Rc::new(value.clone())) {
               Ok(()) => Ok(value),
               Err(e) => Err(e)
             }
@@ -25,17 +25,17 @@ impl ExprEvaluator {
       },
       Expression::Identifier(token) => {
         match env.borrow().get(&token.lexeme.to_string()) {
-          Some(v) => Ok(v.into_inner()),
-          None => Err(ExprEvalError::UndefinedIdentifier(token.lexeme.to_string()))
+          Some(v) => Ok((*v).clone()),
+          None => Err(RuntimeError::UndefinedIdentifier(token.lexeme.to_string()))
         }
       },
       Expression::Literal(token) => {
         match token.token_type {
-          TokenType::Nil => Ok(ExprType::Nil()),
-          TokenType::True | TokenType::False => Ok(ExprType::Boolean(token.lexeme.parse::<bool>().unwrap())),
-          TokenType::Number => Ok(ExprType::Number(token.literal.parse::<f64>().unwrap())),
-          TokenType::String => Ok(ExprType::String(token.literal.to_string())),
-          _ => Ok(ExprType::Nil())
+          TokenType::Nil => Ok(RuntimeType::Nil()),
+          TokenType::True | TokenType::False => Ok(RuntimeType::Boolean(token.lexeme.parse::<bool>().unwrap())),
+          TokenType::Number => Ok(RuntimeType::Number(token.literal.parse::<f64>().unwrap())),
+          TokenType::String => Ok(RuntimeType::String(token.literal.to_string())),
+          _ => Ok(RuntimeType::Nil())
         }
       },
       Expression::Grouping(e) => ExprEvaluator::evaluate(e, env),
@@ -45,12 +45,12 @@ impl ExprEvaluator {
         match value {
           Ok(v) => {
             match token.token_type {
-              TokenType::Bang => Ok(ExprType::Boolean(!v.is_truthy())),
+              TokenType::Bang => Ok(RuntimeType::Boolean(!v.is_truthy())),
               TokenType::Minus => match v {
-                ExprType::Number(n) => Ok(ExprType::Number(-n)),
-                _ => Err(ExprEvalError::UnaryError(format!("Operand must be a number.\n[line {}]", token.line)))
+                RuntimeType::Number(n) => Ok(RuntimeType::Number(-n)),
+                _ => Err(RuntimeError::UnaryError(format!("Operand must be a number.\n[line {}]", token.line)))
               },
-              _ => Ok(ExprType::Nil())
+              _ => Ok(RuntimeType::Nil())
             }
           },
           Err(e) => Err(e)
@@ -66,50 +66,50 @@ impl ExprEvaluator {
             match right_value_r {
               Ok(right_value) => {
                 match left_value {
-                  ExprType::Number(ln) => match right_value {
-                    ExprType::Number(rn) => match token.token_type {
-                      TokenType::Plus => Ok(ExprType::Number(ln + rn)),
-                      TokenType::Minus => Ok(ExprType::Number(ln - rn)),
-                      TokenType::Star => Ok(ExprType::Number(ln * rn)),
-                      TokenType::Slash => Ok(ExprType::Number(ln / rn)),
-                      TokenType::Greater => Ok(ExprType::Boolean(ln > rn)),
-                      TokenType::GreaterEqual => Ok(ExprType::Boolean(ln >= rn)),
-                      TokenType::Less => Ok(ExprType::Boolean(ln < rn)),
-                      TokenType::LessEqual => Ok(ExprType::Boolean(ln <= rn)),
-                      TokenType::EqualEqual => Ok(ExprType::Boolean(ln == rn)),
-                      TokenType::BangEqual => Ok(ExprType::Boolean(ln != rn)),
-                      _ => Ok(ExprType::Nil())
+                  RuntimeType::Number(ln) => match right_value {
+                    RuntimeType::Number(rn) => match token.token_type {
+                      TokenType::Plus => Ok(RuntimeType::Number(ln + rn)),
+                      TokenType::Minus => Ok(RuntimeType::Number(ln - rn)),
+                      TokenType::Star => Ok(RuntimeType::Number(ln * rn)),
+                      TokenType::Slash => Ok(RuntimeType::Number(ln / rn)),
+                      TokenType::Greater => Ok(RuntimeType::Boolean(ln > rn)),
+                      TokenType::GreaterEqual => Ok(RuntimeType::Boolean(ln >= rn)),
+                      TokenType::Less => Ok(RuntimeType::Boolean(ln < rn)),
+                      TokenType::LessEqual => Ok(RuntimeType::Boolean(ln <= rn)),
+                      TokenType::EqualEqual => Ok(RuntimeType::Boolean(ln == rn)),
+                      TokenType::BangEqual => Ok(RuntimeType::Boolean(ln != rn)),
+                      _ => Ok(RuntimeType::Nil())
                     },
-                    ExprType::String(_rs) => match token.token_type {
-                      TokenType::EqualEqual => Ok(ExprType::Boolean(false)),
-                      TokenType::BangEqual => Ok(ExprType::Boolean(true)),
-                      _ => Err(ExprEvalError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                    RuntimeType::String(_rs) => match token.token_type {
+                      TokenType::EqualEqual => Ok(RuntimeType::Boolean(false)),
+                      TokenType::BangEqual => Ok(RuntimeType::Boolean(true)),
+                      _ => Err(RuntimeError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
-                    _ => Err(ExprEvalError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                    _ => Err(RuntimeError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                   },
-                  ExprType::String(ls) => match right_value {
-                    ExprType::String(rs) => match token.token_type {
-                      TokenType::Plus => Ok(ExprType::String(ls + &rs)),
-                      TokenType::EqualEqual => Ok(ExprType::Boolean(ls == rs)),
-                      TokenType::BangEqual => Ok(ExprType::Boolean(ls != rs)),
-                      _ => Err(ExprEvalError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                  RuntimeType::String(ls) => match right_value {
+                    RuntimeType::String(rs) => match token.token_type {
+                      TokenType::Plus => Ok(RuntimeType::String(ls + &rs)),
+                      TokenType::EqualEqual => Ok(RuntimeType::Boolean(ls == rs)),
+                      TokenType::BangEqual => Ok(RuntimeType::Boolean(ls != rs)),
+                      _ => Err(RuntimeError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
-                    ExprType::Number(_rn) => match token.token_type {
-                      TokenType::EqualEqual => Ok(ExprType::Boolean(false)),
-                      TokenType::BangEqual => Ok(ExprType::Boolean(true)),
-                      _ => Err(ExprEvalError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                    RuntimeType::Number(_rn) => match token.token_type {
+                      TokenType::EqualEqual => Ok(RuntimeType::Boolean(false)),
+                      TokenType::BangEqual => Ok(RuntimeType::Boolean(true)),
+                      _ => Err(RuntimeError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                     },
-                    _ => Err(ExprEvalError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                    _ => Err(RuntimeError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                   },
-                  ExprType::Boolean(lb) => match right_value {
-                    ExprType::Boolean(rb) => match token.token_type {
-                      TokenType::EqualEqual => Ok(ExprType::Boolean(lb == rb)),
-                      TokenType::BangEqual => Ok(ExprType::Boolean(lb != rb)),
-                      _ => Err(ExprEvalError::BinaryError(format!("Invalid comparison for booleans.\n[line {}]", token.line)))
+                  RuntimeType::Boolean(lb) => match right_value {
+                    RuntimeType::Boolean(rb) => match token.token_type {
+                      TokenType::EqualEqual => Ok(RuntimeType::Boolean(lb == rb)),
+                      TokenType::BangEqual => Ok(RuntimeType::Boolean(lb != rb)),
+                      _ => Err(RuntimeError::BinaryError(format!("Invalid comparison for booleans.\n[line {}]", token.line)))
                     }
-                    _ => Err(ExprEvalError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
+                    _ => Err(RuntimeError::BinaryError(format!("Operands must be numbers.\n[line {}]", token.line)))
                   },
-                  _ => Err(ExprEvalError::BinaryError(format!("Operands must be two numbers or two strings.\n[line {}]", token.line)))
+                  _ => Err(RuntimeError::BinaryError(format!("Operands must be two numbers or two strings.\n[line {}]", token.line)))
                 }
               },
               Err(e) => Err(e)
@@ -138,17 +138,17 @@ impl ExprEvaluator {
       Expression::Call(callee, arguments) => {
         match ExprEvaluator::evaluate(callee, env) {
           Ok(eval_callee) => {
-            let mut eval_args: Vec<ExprType> = Vec::new();
+            let mut eval_args: Vec<Rc<RuntimeType>> = Vec::new();
             for arg in arguments {
               match ExprEvaluator::evaluate(arg, env) {
-                Ok(v) => eval_args.push(v),
+                Ok(v) => eval_args.push(Rc::new(v)),
                 Err(e) => return Err(e)
               }
             }
 
             match eval_callee {
-              ExprType::Function(function) => Ok(function.call(eval_args)),
-              _ => Err(ExprEvalError::UndefinedIdentifier(callee.to_string()))
+              RuntimeType::Function(function) => function.call(eval_args),
+              _ => Err(RuntimeError::UndefinedIdentifier(callee.to_string()))
             }
           },
           Err(e) => Err(e)

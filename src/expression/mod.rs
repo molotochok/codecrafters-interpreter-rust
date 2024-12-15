@@ -1,24 +1,23 @@
 pub mod parser;
 pub mod evaluator;
-pub mod expr_type;
-pub mod expr_eval_error;
 
-use std::borrow::Cow;
+use std::{borrow::Cow, rc::Rc};
 use crate::token::{Token, TokenType};
 
-pub enum Expression<'a> {
-  Literal(&'a Token),
-  Unary(&'a Token, Box<Expression<'a>>),
-  Binary(Box<Expression<'a>>, &'a Token, Box<Expression<'a>>),
-  Grouping(Box<Expression<'a>>),
-  Identifier(&'a Token),
-  Assign(&'a Token, Box<Expression<'a>>),
-  Logical(Box<Expression<'a>>, &'a Token, Box<Expression<'a>>),
-  Call(Box<Expression<'a>>, Vec<Expression<'a>>),
+#[derive(Clone)]
+pub enum Expression {
+  Literal(Rc<Token>),
+  Unary(Rc<Token>, Box<Expression>),
+  Binary(Box<Expression>, Rc<Token>, Box<Expression>),
+  Grouping(Box<Expression>),
+  Identifier(Rc<Token>),
+  Assign(Rc<Token>, Box<Expression>),
+  Logical(Box<Expression>, Rc<Token>, Box<Expression>),
+  Call(Box<Expression>, Vec<Expression>),
   Nil(),
 }
 
-impl<'a> Expression<'a> {
+impl Expression {
   pub fn to_string(&self) -> String {
     match self {
       Expression::Literal(token) => {

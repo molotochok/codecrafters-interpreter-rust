@@ -1,19 +1,27 @@
 pub mod evaluator;
 pub mod parser;
 
-use crate::{expression::Expression, token::Token};
 
-pub enum Statement<'a> {
+use std::rc::Rc;
+
+use crate::{expression::Expression, runtime::{runtime_error::RuntimeError, runtime_type::RuntimeType}, token::Token};
+
+#[derive(Clone)]
+pub enum Statement {
   Empty(),
-  Print(Box<Expression<'a>>),
-  Expression(Box<Expression<'a>>),
-  Var(&'a Token, Box<Expression<'a>>),
-  Block(Box<Vec<Statement<'a>>>),
-  If(Box<Expression<'a>>, Box<Statement<'a>>, Box<Statement<'a>>),
-  While(Box<Expression<'a>>, Box<Statement<'a>>)
+  Print(Box<Expression>),
+  Expression(Box<Expression>),
+  Var(Rc<Token>, Box<Expression>),
+  Function(Rc<Token>, Vec<Rc<Token>>, Box<Statement>),
+  Block(Box<Vec<Statement>>),
+  If(Box<Expression>, Box<Statement>, Box<Statement>),
+  While(Box<Expression>, Box<Statement>),
+  
+  // Used for native functions.
+  Native(Rc<dyn Fn() -> Result<RuntimeType, RuntimeError>>)
 }
 
-impl<'a> Statement<'a> {
+impl Statement {
   pub fn to_string(&self) -> String {
     match self {
       Statement::Empty() => String::new(),
@@ -25,6 +33,9 @@ impl<'a> Statement<'a> {
       },
       Statement::Var(token, expression) => {
         format!("Var: {}, {}", token.lexeme, expression.to_string())
+      },
+      Statement::Function(func_name, args, body) => {
+        format!("Function: name = {}, args = {}, body = {}", func_name.lexeme, args.iter().map(|a| a.to_str()).collect::<Vec<_>>().join(", ").to_string(), body.to_string())
       },
       Statement::Block(statements) => {
         let str = statements.iter()
@@ -39,7 +50,10 @@ impl<'a> Statement<'a> {
       },
       Statement::While(expr, stmt) => {
         format!("While:\n Condition: {};\n Statement: {}", expr.to_string(), stmt.to_string())
-      }
+      },
+      Statement::Native(_fun) => {
+        format!("Native function")
+      },
     }
   }
 }
