@@ -38,9 +38,15 @@ impl StmtParser {
     match ParserUtils::match_advance(tokens, index, &[TokenType::Identifier]) {
       Some(func_name) => {
         match StmtParser::fun_args(tokens, index) {
-          Ok(args) => match StmtParser::statement(tokens, index) {
-            Ok(body) => return Ok(Statement::Function(func_name, args, Box::new(body))),
-            Err(e) => return Err(e)
+          Ok(args) => {
+            if !ParserUtils::matches(&tokens[*index], &[TokenType::LeftBrace]) {
+              return Err(ParserError::MissingToken(TokenType::LeftBrace));
+            }
+
+            match StmtParser::statement(tokens, index) {
+              Ok(body) => return Ok(Statement::Function(func_name, args, Box::new(body))),
+              Err(e) => return Err(e)
+            }
           },
           Err(e) => return Err(e)
         }
