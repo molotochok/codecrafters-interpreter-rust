@@ -203,21 +203,22 @@ impl ExprParser {
 
   fn call(tokens: &Vec<Rc<Token>>, index: &mut usize) -> Result<Expression, ParserError> {
     match ExprParser::primary(tokens, index) {
-      Ok(callee) => {
-        // TODO: This should be in a loop and I should cover closing paren
-        match ParserUtils::match_advance(tokens, index, &[TokenType::LeftParen]) {
-          Some(_lp) => {
-            match ExprParser::arguments(tokens, index) {
-              Ok(arguments) => {
-                match ParserUtils::match_advance(tokens, index, &[TokenType::RightParen]) {
-                  Some(_rp) => Ok(Expression::Call(Box::new(callee), arguments)),
-                  None => Err(ParserError::MissingToken(TokenType::RightParen))
-                }
-              },
-              Err(e) => Err(e)
-            }
-          },
-          None => Ok(callee)
+      Ok(mut expr) => {
+        loop {
+          match ParserUtils::match_advance(tokens, index, &[TokenType::LeftParen]) {
+            Some(_lp) => {
+              match ExprParser::arguments(tokens, index) {
+                Ok(arguments) => {
+                  match ParserUtils::match_advance(tokens, index, &[TokenType::RightParen]) {
+                    Some(_rp) => expr = Expression::Call(Box::new(expr), arguments),
+                    None => return Err(ParserError::MissingToken(TokenType::RightParen))
+                  }
+                },
+                Err(e) => return Err(e)
+              }
+            },
+            None => return Ok(expr)
+          }
         }
       },
       Err(e) => Err(e)
