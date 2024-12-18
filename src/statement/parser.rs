@@ -238,6 +238,14 @@ impl StmtParser {
           None => Err(ParserError::MissingToken(TokenType::LeftParen))
         }
       },
+      TokenType::Return => {
+        *index += 1;
+
+        match StmtParser::expression(tokens, index, &Some(TokenType::Semicolon), true) {
+          Ok(value) => Ok(Statement::Return(Box::new(value))),
+          Err(e) => Err(e)
+        }
+      }
       _ => {
         match StmtParser::expression(tokens, index, &Some(TokenType::Semicolon), false) {
           Ok(expression) => Ok(Statement::Expression(Box::new(expression))),

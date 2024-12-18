@@ -33,7 +33,10 @@ impl RuntimeFunction {
 
     match StmtEvaluator::evaluate(&self.body, &local_env) {
       Ok(v) => Ok(v),
-      Err(e) => Err(e)
+      Err(e) => match e {
+        RuntimeError::ReturnValue(v) => Ok(v),
+        _ => Err(e)
+      }
     }
   }
 }

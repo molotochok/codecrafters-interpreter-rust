@@ -79,6 +79,12 @@ impl StmtEvaluator {
           } 
         }
       },
+      Statement::Return(expr) => {
+        match ExprEvaluator::evaluate(expr, env) {
+          Ok(value) => Err(RuntimeError::ReturnValue(value)),
+          Err(e) => Err(e)
+        }
+      },
       Statement::Native(fun) => {
         return fun();
       }

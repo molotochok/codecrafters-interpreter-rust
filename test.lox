@@ -1,0 +1,6 @@
+fun f() {
+  var a = 2 + 2;
+  return a;
+}
+
+print f();

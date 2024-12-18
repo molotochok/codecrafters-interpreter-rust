@@ -16,6 +16,7 @@ pub enum Statement {
   Block(Box<Vec<Statement>>),
   If(Box<Expression>, Box<Statement>, Box<Statement>),
   While(Box<Expression>, Box<Statement>),
+  Return(Box<Expression>),
   
   // Used for native functions.
   Native(Rc<dyn Fn() -> Result<RuntimeType, RuntimeError>>)
@@ -51,6 +52,9 @@ impl Statement {
       Statement::While(expr, stmt) => {
         format!("While:\n Condition: {};\n Statement: {}", expr.to_string(), stmt.to_string())
       },
+      Statement::Return(expr) => {
+        format!("Return: \n {}", expr.to_string())
+      }
       Statement::Native(_fun) => {
         format!("Native function")
       },

@@ -5,7 +5,7 @@ pub enum ParserError {
   MissingToken(TokenType),
   UnmatchedParentheses(),
   ExpectExpression(String),
-  InvalidAssignment(String)
+  InvalidAssignment(String),
 }
 
 impl ParserError {
